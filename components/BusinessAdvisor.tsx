@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { sendWhatsAppMessage } from '@/services/whatsappService';
-import { scheduleTasksFromWeeklyPlan } from '@/services/schedulingService';
-import SchedulingCalendar from './SchedulingCalendar';
+import { setOwnerMobileNumber } from '@/services/notificationService';
+import { generateDetailedPlan, type DetailedPlan } from '@/services/detailedMarketingPlanService';
 
 interface BusinessInputs {
   businessType: string;
@@ -12,6 +11,7 @@ interface BusinessInputs {
   numberOfWorkers: string;
   growthGoal: 'visibility' | 'sales' | 'expansion';
   targetTimeSpan: string;
+  ownerMobile?: string;
 }
 
 type TaskCategory = 'AI-Prepared' | 'Human Review Required' | 'Manual Action';
@@ -36,16 +36,15 @@ interface DayPlan {
 }
 
 interface Recommendation {
-  businessSummary: string;
-  growthGoalIdentified: string;
-  methods: Array<{ method: string; explanation: string }>;
+  analysis: string;
+  methods: string[];
   automatedTasks: string[];
   aiAssistedTasks: string[];
   humanOnlyTasks: string[];
   weeklyPlan: DayPlan[];
-  aiContribution: string[];
   collaborations?: string[];
   fundraising?: string[];
+  aiContributionSummary?: string;
 }
 
 export default function BusinessAdvisor() {
@@ -56,26 +55,30 @@ export default function BusinessAdvisor() {
     numberOfWorkers: '',
     growthGoal: 'visibility',
     targetTimeSpan: '',
+    ownerMobile: '',
   });
   const [recommendations, setRecommendations] = useState<Recommendation | null>(null);
+  const [detailedPlan, setDetailedPlan] = useState<DetailedPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [taskStatuses, setTaskStatuses] = useState<Record<string, TaskStatus>>({});
 
   // Load task statuses from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('businessAdvisor_taskStatuses');
-    if (saved) {
-      try {
-        setTaskStatuses(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to load task statuses:', e);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('businessAdvisor_taskStatuses');
+      if (saved) {
+        try {
+          setTaskStatuses(JSON.parse(saved));
+        } catch (e) {
+          console.error('Failed to load task statuses:', e);
+        }
       }
     }
   }, []);
 
   // Save task statuses to localStorage whenever they change
   useEffect(() => {
-    if (Object.keys(taskStatuses).length > 0) {
+    if (typeof window !== 'undefined' && Object.keys(taskStatuses).length > 0) {
       localStorage.setItem('businessAdvisor_taskStatuses', JSON.stringify(taskStatuses));
     }
   }, [taskStatuses]);
@@ -87,7 +90,12 @@ export default function BusinessAdvisor() {
     growthGoal: string,
     category: TaskCategory
   ) => {
-    const content: any = {};
+    const content: {
+      captions?: string[];
+      postingTimes?: string[];
+      contentIdeas?: string[];
+      checklist?: string[];
+    } = {};
 
     // Generate social media captions
     if (taskText.toLowerCase().includes('social media') || taskText.toLowerCase().includes('post')) {
@@ -204,7 +212,7 @@ export default function BusinessAdvisor() {
     } else if (lower.includes('google business') || lower.includes('directory')) {
       reasoning = `Local search visibility is essential - 46% of Google searches are local. `;
       if (budget < 100) {
-        reasoning += `Since your budget is $${budget}, free listings are your best investment. `;
+        reasoning += `Since your budget is ₹${budget.toLocaleString('en-IN')}, free listings are your best investment. `;
       }
       reasoning += `Optimizing your ${businessType} profile helps customers find you.`;
     } else if (lower.includes('customer') || lower.includes('reach out')) {
@@ -232,7 +240,7 @@ export default function BusinessAdvisor() {
     } else if (lower.includes('promotion') || lower.includes('offer') || lower.includes('discount')) {
       reasoning = `Limited-time offers create urgency and drive immediate sales. `;
       if (budget < 100) {
-        reasoning += `Since your budget is $${budget}, promotional messaging is a cost-effective way to boost sales. `;
+        reasoning += `Since your budget is ₹${budget.toLocaleString('en-IN')}, promotional messaging is a cost-effective way to boost sales. `;
       }
       reasoning += `${day} is strategic for launching offers as it gives customers time to respond before the weekend.`;
     } else if (lower.includes('network') || lower.includes('event') || lower.includes('partner')) {
@@ -340,205 +348,131 @@ export default function BusinessAdvisor() {
     const hasMinimalResources = isLowBudget && hasLimitedTime && isSmallTeam;
     const canDoSocialMedia = timePerDay >= 1 && workers >= 1 && !hasVeryLimitedTime;
 
-    // 1) Business Summary
-    let businessSummary = `You run a ${data.businessType || 'business'} with `;
+    // Build analysis following the new format: Business Summary + Growth Goal Identified
+    let analysis = `1) BUSINESS SUMMARY\n\n`;
+    analysis += `You run a ${data.businessType || 'business'} with `;
     if (hasMinimalResources) {
-      businessSummary += 'very limited resources. ';
+      analysis += 'very limited resources. ';
     } else if (isLowBudget || hasLimitedTime || isSmallTeam) {
-      businessSummary += 'limited resources. ';
+      analysis += 'limited resources. ';
     } else {
-      businessSummary += 'moderate resources. ';
+      analysis += 'moderate resources. ';
     }
     
-    businessSummary += `You have ₹${budget.toFixed(0)} per month budget, ${timePerDay} hours available per day, and ${workers} worker${workers !== 1 ? 's' : ''}. `;
+    analysis += `You have ₹${budget.toLocaleString('en-IN')} per month, ${timePerDay} hours per day, and ${workers} worker${workers !== 1 ? 's' : ''}. `;
     
     if (hasMinimalResources) {
-      businessSummary += 'Given these constraints, we\'ll prioritize the most impactful, low-cost methods that require minimal ongoing effort.';
+      analysis += 'Given these constraints, we\'ll prioritize the most impactful, low-cost methods that require minimal ongoing effort.';
     } else if (hasLimitedTime && isLowBudget) {
-      businessSummary += 'Since time and budget are limited, we\'ll prioritize methods that can be automated or require minimal daily effort.';
+      analysis += 'Since time and budget are limited, we\'ll prioritize methods that can be automated or require minimal daily effort.';
     } else if (hasLimitedTime) {
-      businessSummary += 'With limited time available, we\'ll focus on efficient methods that can be managed with minimal daily involvement.';
+      analysis += 'With limited time available, we\'ll focus on efficient methods that can be managed with minimal daily involvement.';
     } else if (isLowBudget) {
-      businessSummary += 'With a limited budget, we\'ll emphasize free and low-cost strategies that maximize your resources.';
+      analysis += 'With a limited budget, we\'ll emphasize free and low-cost strategies that maximize your resources.';
     }
-
-    // 2) Growth Goal Identified
-    let growthGoalIdentified = '';
+    
+    analysis += `\n\n2) GROWTH GOAL IDENTIFIED\n\n`;
+    // Goal-specific analysis with clear explanation
     if (growthGoal === 'visibility') {
-      growthGoalIdentified = `🎯 INCREASE VISIBILITY: Your goal is to make your ${data.businessType || 'business'} more discoverable and recognizable within ${timeSpan} days. This means focusing on awareness and discovery - getting your business noticed online, in local search results, and in your community. We'll prioritize local search presence, community outreach, and basic social media presence. Sales tactics are secondary here - this is about making sure people know you exist and can find you when they need what you offer.`;
+      analysis += `Your selected goal is: INCREASE VISIBILITY within ${timeSpan} days.\n\n`;
+      analysis += `This means focusing on awareness and discovery - getting your business noticed online and in your local community. `;
+      analysis += `We will NOT focus heavily on sales or investment. Instead, we'll prioritize local search presence, community outreach, and basic social media presence to help potential customers find and discover your business.`;
     } else if (growthGoal === 'sales') {
-      growthGoalIdentified = `💰 INCREASE SALES: Your goal is revenue growth within ${timeSpan} days. This is conversion-focused - turning interested people into paying customers. We'll prioritize direct marketing, promotions, customer outreach, and conversion optimization. Visibility methods are secondary here - this is about driving immediate purchases through offers, repeat customer engagement, and creating urgency. Every strategy will be measured by its ability to generate revenue.`;
+      analysis += `Your selected goal is: INCREASE SALES within ${timeSpan} days.\n\n`;
+      analysis += `This means focusing on conversion-driven methods - turning awareness into revenue. `;
+      analysis += `We will prioritize offers, repeat customers, direct communication, and limited promotions. Visibility methods are secondary. Our primary focus is driving immediate revenue through targeted marketing and customer engagement.`;
     } else if (growthGoal === 'expansion') {
-      growthGoalIdentified = `🚀 BUSINESS EXPANSION: Your goal is to scale and grow your business within ${timeSpan} days. This isn't about short-term visibility or immediate sales - it's about building the foundation for long-term growth. We'll focus on scalability, partnerships, collaborations, market research, and operational improvements. Short-term promotional tactics are avoided - this is about preparing your business to handle more locations, more customers, or new revenue streams.`;
+      analysis += `Your selected goal is: BUSINESS EXPANSION within ${timeSpan} days.\n\n`;
+      analysis += `This means focusing on scalability, partnerships, collaborations, and long-term planning. `;
+      analysis += `We will avoid short-term promotional tactics. Instead, we'll focus on market research, strategic partnerships, scaling operations, and preparing for growth opportunities that allow your business to expand sustainably.`;
     }
 
-    // 3) Recommended Growth Methods (Goal-Specific) with explanations
-    const methods: Array<{ method: string; explanation: string }> = [];
+    // Goal-specific methods with explanations (WHY each method fits the goal)
+    const methods: string[] = [];
     
     if (growthGoal === 'visibility') {
-      // Visibility-focused methods with WHY explanations
-      methods.push({
-        method: 'Google Business Profile setup and optimization',
-        explanation: 'WHY: Free and essential for local visibility. When people search for your business type in your area, your profile appears first. This is the foundation of local discovery - 46% of Google searches are local.'
-      });
-      methods.push({
-        method: 'Submit to all major local directories (Yelp, Yellow Pages, Bing Places, etc.)',
-        explanation: 'WHY: Increases your chances of being found across multiple platforms. Each directory listing is another opportunity for discovery. People use different platforms, so being everywhere maximizes visibility.'
-      });
-      methods.push({
-        method: 'Focus on collecting and responding to online reviews',
-        explanation: 'WHY: Reviews improve your search rankings and build trust. More reviews = higher visibility in search results. Responding shows you care, which encourages more customers to leave reviews.'
-      });
+      // Visibility-focused methods with WHY explanations - VERY SPECIFIC to shop data
+      const businessTypeLower = (data.businessType || '').toLowerCase();
+      const isFoodService = businessTypeLower.includes('coffee') || businessTypeLower.includes('cafe') || businessTypeLower.includes('restaurant') || businessTypeLower.includes('bakery');
+      const isServiceBusiness = businessTypeLower.includes('repair') || businessTypeLower.includes('service') || businessTypeLower.includes('shop');
+      
+      methods.push(`Google Business Profile setup and optimization for ${data.businessType || 'your business'} (WHY: Free and essential - when people search "${data.businessType || 'your business type'}" in your area, you'll appear in results. With ₹${budget.toLocaleString('en-IN')}/month budget, this free method is perfect for your ${workers === 1 ? 'solo operation' : `${workers}-person team`})`);
+      
+      if (isFoodService) {
+        methods.push(`Submit to food-specific directories like Zomato, Swiggy, and local food blogs (WHY: Food businesses get ${budget < 100 ? '80%' : '60%'} of customers from food discovery platforms. With ${workers} ${workers === 1 ? 'worker' : 'workers'} handling ${data.businessType || 'operations'}, online visibility is crucial)`);
+      } else if (isServiceBusiness) {
+        methods.push(`Submit to service directories like Justdial, Sulekha, and local business listings (WHY: Service businesses get ${budget < 100 ? '70%' : '50%'} of customers from local search. Your ${workers} ${workers === 1 ? 'team member' : 'team members'} can handle inquiries from these platforms)`);
+      } else {
+        methods.push(`Submit to all major local directories like Yelp, Yellow Pages, Bing Places (WHY: Each directory listing increases discovery chances. With ${workers} ${workers === 1 ? 'person' : 'people'} and ₹${budget.toLocaleString('en-IN')}/month, free listings maximize your visibility)`);
+      }
+      
+      methods.push(`Focus on collecting and responding to online reviews (WHY: Reviews improve local search ranking. With ${workers} ${workers === 1 ? 'worker' : 'workers'} and ${timePerDay} hours/day, responding to reviews takes ${workers === 1 ? '15 minutes' : '10 minutes'} daily but significantly boosts visibility)`);
       
       if (canDoSocialMedia) {
         if (timePerDay >= 1.5) {
-          methods.push({
-            method: 'Instagram account with daily posts focusing on brand awareness',
-            explanation: 'WHY: Visual platform perfect for showing your business personality. Daily posts keep you top-of-mind and help people discover you through hashtags and location tags.'
-          });
+          methods.push('Instagram account with daily posts focusing on brand awareness (WHY: Visual platform helps people discover your business through hashtags and local discovery features)');
         }
         if (timePerDay >= 2) {
-          methods.push({
-            method: 'Facebook business page with regular updates',
-            explanation: 'WHY: Most people use Facebook - having a presence there makes you discoverable to local community members. Regular updates keep your business visible in their feeds.'
-          });
+          methods.push('Facebook business page with regular updates (WHY: Facebook\'s local business features help neighbors and community members find you)');
         }
         if (timePerDay >= 2 && workers >= 2) {
-          methods.push({
-            method: 'YouTube channel with behind-the-scenes and educational content',
-            explanation: 'WHY: Video content ranks well in search and helps people get to know your business. Educational content positions you as an expert, increasing visibility and trust.'
-          });
+          methods.push('YouTube channel with behind-the-scenes and educational content (WHY: Video content ranks well in search and helps establish your business as a local authority)');
         }
       }
       
-      methods.push({
-        method: 'Local SEO optimization (keywords, location tags, local backlinks)',
-        explanation: 'WHY: Makes your website appear when people search for what you offer in your area. Proper keywords and location tags ensure search engines understand where you are and what you do.'
-      });
-      methods.push({
-        method: 'Participate in local community events for brand visibility',
-        explanation: 'WHY: Face-to-face presence builds local recognition. People remember businesses they see at events, and it creates word-of-mouth visibility that online methods can\'t replace.'
-      });
-      methods.push({
-        method: 'Engage with local community groups and forums',
-        explanation: 'WHY: Being active in local online communities puts your business name in front of potential customers. Helpful participation builds visibility and trust without being salesy.'
-      });
+      methods.push('Local SEO optimization with keywords, location tags, and local backlinks (WHY: When people search "your business type near me", optimized content helps you appear first)');
+      methods.push('Participate in local community events for brand visibility (WHY: Face-to-face presence builds local recognition and word-of-mouth awareness)');
+      methods.push('Engage with local community groups and forums (WHY: Being active in local online communities puts your business name in front of potential customers)');
       
       if (budget >= 50) {
-        methods.push({
-          method: `Google Ads local search campaigns (budget: ₹${Math.min(budget * 0.4, 150).toFixed(0)}/month)`,
-          explanation: 'WHY: Paid ads guarantee your business appears at the top of search results for relevant local searches. This accelerates visibility when organic methods need time to work.'
-        });
+        methods.push(`Optional: Google Ads local search campaigns (WHY: Paid ads appear at the top of search results, increasing visibility for people actively searching for your services. Budget: ₹${Math.min(budget * 0.4, 15000).toLocaleString('en-IN')}/month)`);
       }
       
     } else if (growthGoal === 'sales') {
       // Sales-focused methods with WHY explanations
-      methods.push({
-        method: 'Google Business Profile with special offers and promotions prominently displayed',
-        explanation: 'WHY: When people find you, they immediately see your offers. This converts discovery into sales. Promotions create urgency and drive immediate action.'
-      });
-      methods.push({
-        method: 'Create and promote limited-time discounts or special offers',
-        explanation: 'WHY: Scarcity and urgency drive purchases. Limited-time offers create FOMO (fear of missing out) and motivate people to buy now rather than later.'
-      });
-      methods.push({
-        method: 'Direct customer outreach via phone/email to previous customers',
-        explanation: 'WHY: Past customers are your easiest sales - they already know and trust you. Personal outreach has the highest conversion rate. A simple call or email can bring back business.'
-      });
+      methods.push('Google Business Profile with special offers and promotions prominently displayed (WHY: People already searching for you will see your offers immediately, increasing conversion chances)');
+      methods.push('Create and promote limited-time discounts or special offers (WHY: Urgency and value drive immediate purchasing decisions from existing and potential customers)');
+      methods.push('Direct customer outreach via phone/email to previous customers (WHY: Past customers have the highest conversion rate - personal outreach converts better than broad advertising)');
       
       if (!hasVeryLimitedTime) {
-        methods.push({
-          method: 'In-store promotions and upselling strategies',
-          explanation: 'WHY: Maximizes revenue from customers already in your store. Upselling increases average transaction value - turning a ₹500 sale into ₹750 with minimal effort.'
-        });
-        methods.push({
-          method: 'Customer referral program with incentives',
-          explanation: 'WHY: Your existing customers become your sales team. Referrals convert at 3x the rate of cold leads. Incentives motivate customers to bring friends, creating new sales.'
-        });
-        methods.push({
-          method: 'Follow-up campaigns for customers who haven\'t purchased recently',
-          explanation: 'WHY: Reactivating past customers is cheaper than finding new ones. A simple "we miss you" message with an offer can bring back lapsed customers and generate immediate sales.'
-        });
+        methods.push('In-store promotions and upselling strategies (WHY: Converting existing visitors to higher-value purchases directly increases revenue)');
+        methods.push('Customer referral program with incentives (WHY: Existing customers bring new customers who are pre-qualified and more likely to purchase)');
+        methods.push('Follow-up campaigns for customers who haven\'t purchased recently (WHY: Re-engaging lapsed customers recovers lost revenue with minimal acquisition cost)');
       }
       
       if (canDoSocialMedia && timePerDay >= 1.5) {
-        methods.push({
-          method: 'Instagram/Facebook with promotional posts and sales announcements',
-          explanation: 'WHY: Social media reaches customers where they spend time. Promotional posts create awareness of offers and drive traffic to your store or website, converting to sales.'
-        });
-        methods.push({
-          method: 'Email marketing campaigns for special offers',
-          explanation: 'WHY: Email has the highest ROI of any marketing channel. Sending targeted offers to your email list directly drives sales. People check email regularly, so your offers get seen.'
-        });
+        methods.push('Instagram/Facebook with promotional posts and sales announcements (WHY: Social media reaches existing followers who already know your business, making promotional posts highly effective for sales)');
+        methods.push('Email marketing campaigns for special offers (WHY: Email has high conversion rates and allows direct communication with customers interested in your offers)');
       }
       
-      methods.push({
-        method: 'Optimize pricing and create urgency (limited stock, flash sales)',
-        explanation: 'WHY: Psychological triggers like scarcity and urgency increase conversion rates. "Only 3 left" or "Sale ends today" motivates immediate purchase decisions.'
-      });
-      methods.push({
-        method: 'Partner with complementary businesses for cross-promotions',
-        explanation: 'WHY: Access to each other\'s customer bases multiplies your reach. Joint promotions create value for both businesses and drive sales through new customer acquisition.'
-      });
+      methods.push('Optimize pricing and create urgency with limited stock or flash sales (WHY: Scarcity and time pressure motivate immediate purchase decisions)');
+      methods.push('Partner with complementary businesses for cross-promotions (WHY: Access to partner\'s customer base expands your reach to people likely to purchase)');
       
       if (budget >= 100) {
-        methods.push({
-          method: `Targeted social media ads promoting specific products/services (budget: ₹${Math.min(budget * 0.6, 300).toFixed(0)}/month)`,
-          explanation: 'WHY: Paid ads target people actively looking to buy. You can show ads to people interested in your products, in your area, at the right time - maximizing conversion potential.'
-        });
+        methods.push(`Optional: Targeted social media ads promoting specific products/services (WHY: Paid ads can target people likely to purchase, driving immediate sales. Budget: ₹${Math.min(budget * 0.6, 30000).toLocaleString('en-IN')}/month)`);
       }
       
     } else if (growthGoal === 'expansion') {
       // Expansion-focused methods with WHY explanations
-      methods.push({
-        method: 'Market research for potential new locations or target markets',
-        explanation: 'WHY: Expansion without research is risky. Understanding new markets, customer needs, and competition prevents costly mistakes and identifies the best opportunities for growth.'
-      });
-      methods.push({
-        method: 'Analyze competitors and identify expansion opportunities',
-        explanation: 'WHY: Learning from competitors shows what works and what doesn\'t. You can identify gaps in the market and opportunities they\'ve missed, giving you a competitive advantage in expansion.'
-      });
-      methods.push({
-        method: 'Build strategic partnerships for scaling',
-        explanation: 'WHY: Partnerships provide resources, expertise, and market access you don\'t have alone. They accelerate expansion by sharing costs, risks, and knowledge needed for growth.'
-      });
+      methods.push('Market research for potential new locations or target markets (WHY: Understanding new markets prevents costly expansion mistakes and identifies best opportunities)');
+      methods.push('Analyze competitors and identify expansion opportunities (WHY: Learning from competitors\' expansion successes and failures guides your strategic growth)');
+      methods.push('Build strategic partnerships for scaling (WHY: Partnerships provide resources, expertise, and market access needed for sustainable expansion)');
       
       if (!hasVeryLimitedTime) {
-        methods.push({
-          method: 'Network with other business owners and industry contacts',
-          explanation: 'WHY: Relationships open doors. Networking provides access to suppliers, investors, mentors, and opportunities. Many expansion opportunities come through personal connections.'
-        });
-        methods.push({
-          method: 'Attend trade shows or industry events',
-          explanation: 'WHY: Industry events are where expansion opportunities are found. You meet suppliers, partners, investors, and learn about new markets and technologies that support growth.'
-        });
+        methods.push('Network with other business owners and industry contacts (WHY: Relationships with experienced business owners provide expansion insights and potential partnership opportunities)');
+        methods.push('Attend trade shows or industry events (WHY: Industry events reveal expansion trends, supplier relationships, and market opportunities)');
       }
       
-      methods.push({
-        method: 'Strengthen online presence to support multiple locations/channels',
-        explanation: 'WHY: A strong online presence supports expansion by making you discoverable in new markets. It also allows you to test new markets online before committing to physical locations.'
-      });
-      methods.push({
-        method: 'Develop systems and processes that can scale',
-        explanation: 'WHY: Without scalable systems, expansion fails. Documented processes ensure quality and consistency as you grow. What works for one location must work for multiple locations.'
-      });
-      methods.push({
-        method: 'Build supplier and vendor relationships for growth',
-        explanation: 'WHY: Reliable suppliers are essential for expansion. Strong relationships ensure you can get products/services at good prices and in the quantities needed for growth.'
-      });
+      methods.push('Strengthen online presence to support multiple locations or channels (WHY: A strong digital foundation allows you to manage and promote multiple locations efficiently)');
+      methods.push('Develop systems and processes that can scale (WHY: Standardized processes ensure quality and efficiency as you grow beyond current capacity)');
+      methods.push('Build supplier and vendor relationships for growth (WHY: Reliable supplier relationships ensure you can meet increased demand during expansion)');
       
       if (canDoSocialMedia) {
-        methods.push({
-          method: 'Social media showcasing business growth and success stories',
-          explanation: 'WHY: Demonstrating success attracts partners, investors, and customers. Success stories build credibility and show your business is ready for and capable of expansion.'
-        });
+        methods.push('Social media showcasing business growth and success stories (WHY: Demonstrating growth builds credibility with potential partners, investors, and new market customers)');
       }
       
       if (budget >= 200) {
-        methods.push({
-          method: `Professional business consulting or market analysis services (budget: ₹${Math.min(budget * 0.3, 500).toFixed(0)}/month)`,
-          explanation: 'WHY: Expert guidance prevents costly expansion mistakes. Consultants provide market insights, strategic planning, and experience you may lack, significantly improving expansion success rates.'
-        });
+        methods.push(`Optional: Professional business consulting or market analysis services (WHY: Expert guidance reduces expansion risks and accelerates growth planning. Budget: ₹${Math.min(budget * 0.3, 50000).toLocaleString('en-IN')}/month)`);
       }
     }
 
@@ -620,185 +554,192 @@ export default function BusinessAdvisor() {
       ];
     }
 
-    // 5) Weekly Action Plan (Goal-Specific) with worker assignments
+    // Goal-specific weekly plans (start with plain strings, convert to TaskItems later)
     let weeklyPlanPlain: { day: string; tasks: string[] }[] = [];
 
     if (growthGoal === 'visibility') {
+      // Visibility weekly plan with worker assignments
       if (workers === 1) {
-        // Single worker plan
         weeklyPlanPlain = [
           {
             day: 'Monday',
             tasks: [
-              'You: Respond to all new reviews and customer messages (AI drafts responses, you personalize)',
-              'AI: Auto-posts 1-2 visibility-focused social media updates (you approve)',
-              'You: Research and submit to 2-3 new local directories (AI suggests directories)',
+              'You: Respond to all new reviews and customer messages (30 min)',
+              'You: Post 1-2 visibility-focused social media updates (20 min)',
+              'You: Research and submit to 2-3 new local directories (30 min)',
             ],
           },
           {
             day: 'Tuesday',
             tasks: [
-              'You: Take 5-7 new photos for online listings and social media',
-              'You: Update Google Business Profile with new photos (AI suggests captions)',
-              'You: Engage with local community groups online (20-30 minutes)',
+              'You: Take 5-7 new photos for online listings and social media (45 min)',
+              'You: Update Google Business Profile with new photos and posts (20 min)',
+              'You: Engage with local community groups online (20-30 min)',
             ],
           },
           {
             day: 'Wednesday',
             tasks: [
-              'AI: Creates content calendar for next week\'s social media (you review and approve)',
-              'You: Optimize existing listings with better keywords (AI suggests keywords)',
-              'You: Research local events to attend or sponsor',
+              'You: Create content for next week\'s social media - focus on brand awareness (60 min)',
+              'You: Optimize existing listings with better keywords and descriptions (30 min)',
+              'You: Research local events to attend or sponsor (30 min)',
             ],
           },
           {
             day: 'Thursday',
             tasks: [
-              'AI: Posts social media update and drafts comment responses (you engage personally)',
-              'You: Reach out to local influencers or bloggers (AI drafts outreach message)',
-              'You: Check SEO rankings and make improvements',
+              'You: Post social media update and engage with comments (30 min)',
+              'You: Reach out to local influencers or bloggers for collaboration (45 min)',
+              'You: Check SEO rankings and make improvements (30 min)',
             ],
           },
           {
             day: 'Friday',
             tasks: [
-              'AI: Compiles visibility metrics report (you review and decide next steps)',
-              'You: Plan weekend community event participation',
-              'AI: Schedules next week\'s visibility-focused tasks (you approve schedule)',
+              'You: Review visibility metrics - website traffic, search appearances, social reach (30 min)',
+              'You: Plan weekend community event participation (30 min)',
+              'You: Schedule next week\'s visibility-focused tasks (30 min)',
             ],
           },
         ];
       } else if (workers === 2) {
-        // Two worker plan with assignments
         weeklyPlanPlain = [
           {
             day: 'Monday',
             tasks: [
-              'Worker 1: Respond to all new reviews and customer messages (AI drafts, Worker 1 personalizes)',
-              'Worker 2: Post 1-2 visibility-focused social media updates (AI creates content, Worker 2 posts)',
-              'Worker 1: Research and submit to 2-3 new local directories (AI suggests directories)',
+              'Worker 1: Respond to all new reviews and customer messages (30 min)',
+              'Worker 1: Post 1-2 visibility-focused social media updates (20 min)',
+              'Worker 2: Research and submit to 2-3 new local directories (30 min)',
+              'Worker 2: Engage with local community groups online (20 min)',
             ],
           },
           {
             day: 'Tuesday',
             tasks: [
-              'Worker 2: Take 5-7 new photos for online listings and social media',
-              'Worker 1: Update Google Business Profile with new photos (AI suggests captions)',
-              'Worker 2: Engage with local community groups online (20-30 minutes)',
+              'Worker 1: Take 5-7 new photos for online listings and social media (45 min)',
+              'Worker 2: Update Google Business Profile with new photos and posts (20 min)',
+              'Worker 1: Optimize existing listings with better keywords (30 min)',
+              'Worker 2: Research local events to attend or sponsor (30 min)',
             ],
           },
           {
             day: 'Wednesday',
             tasks: [
-              'AI: Creates content calendar for next week (both workers review)',
-              'Worker 1: Optimize existing listings with keywords (AI suggests keywords)',
-              'Worker 2: Research local events to attend or sponsor',
+              'Worker 1: Create content for next week\'s social media - focus on brand awareness (60 min)',
+              'Worker 2: Draft SEO-optimized descriptions for new listings (45 min)',
+              'Worker 1: Check SEO rankings and make improvements (30 min)',
             ],
           },
           {
             day: 'Thursday',
             tasks: [
-              'Worker 2: Posts social media update and engages with comments (AI drafts responses)',
-              'Worker 1: Reaches out to local influencers (AI drafts outreach message)',
-              'Worker 2: Checks SEO rankings and makes improvements',
+              'Worker 1: Post social media update and engage with comments (30 min)',
+              'Worker 2: Reach out to local influencers or bloggers for collaboration (45 min)',
+              'Worker 1: Update all directory listings with new information (30 min)',
             ],
           },
           {
             day: 'Friday',
             tasks: [
-              'AI: Compiles visibility metrics report (both workers review together)',
-              'Worker 1: Plans weekend community event participation',
-              'Worker 2: Reviews and approves next week\'s AI-scheduled tasks',
+              'Worker 1: Review visibility metrics - website traffic, search appearances, social reach (30 min)',
+              'Worker 2: Plan weekend community event participation (30 min)',
+              'Both: Schedule next week\'s visibility-focused tasks together (30 min)',
             ],
           },
         ];
       } else {
-        // Three or more workers
+        // 3+ workers
         weeklyPlanPlain = [
           {
             day: 'Monday',
             tasks: [
-              'Worker 1: Responds to reviews and messages (AI drafts, Worker 1 personalizes)',
-              'Worker 2: Posts social media updates (AI creates content)',
-              'Worker 3: Submits to local directories (AI suggests directories)',
+              'Worker 1: Respond to all new reviews and customer messages (30 min)',
+              'Worker 2: Post 1-2 visibility-focused social media updates (20 min)',
+              'Worker 3: Research and submit to 2-3 new local directories (30 min)',
+              'Worker 1: Engage with local community groups online (20 min)',
             ],
           },
           {
             day: 'Tuesday',
             tasks: [
-              'Worker 2: Takes photos for listings (AI suggests photo ideas)',
-              'Worker 1: Updates Google Business Profile (AI suggests captions)',
-              'Worker 3: Engages with community groups (AI suggests talking points)',
+              'Worker 1: Take 5-7 new photos for online listings and social media (45 min)',
+              'Worker 2: Update Google Business Profile with new photos and posts (20 min)',
+              'Worker 3: Optimize existing listings with better keywords and descriptions (30 min)',
+              'Worker 1: Research local events to attend or sponsor (30 min)',
             ],
           },
           {
             day: 'Wednesday',
             tasks: [
-              'AI: Creates content calendar (all workers review)',
-              'Worker 1: Optimizes listings (AI suggests keywords)',
-              'Worker 2: Researches local events',
+              'Worker 1: Create content for next week\'s social media - focus on brand awareness (60 min)',
+              'Worker 2: Draft SEO-optimized descriptions for new listings (45 min)',
+              'Worker 3: Check SEO rankings and make improvements (30 min)',
+              'Worker 2: Reach out to local influencers or bloggers (30 min)',
             ],
           },
           {
             day: 'Thursday',
             tasks: [
-              'Worker 2: Posts social media and engages (AI drafts responses)',
-              'Worker 1: Reaches out to influencers (AI drafts messages)',
-              'Worker 3: Checks SEO and makes improvements',
+              'Worker 1: Post social media update and engage with comments (30 min)',
+              'Worker 2: Continue influencer outreach and collaboration (45 min)',
+              'Worker 3: Update all directory listings with new information (30 min)',
+              'Worker 1: Create visibility-focused content for various platforms (30 min)',
             ],
           },
           {
             day: 'Friday',
             tasks: [
-              'AI: Compiles metrics report (all workers review)',
-              'Worker 1: Plans weekend events',
-              'Worker 2: Reviews next week\'s AI-scheduled tasks',
+              'Worker 1: Review visibility metrics - website traffic, search appearances, social reach (30 min)',
+              'Worker 2: Plan weekend community event participation (30 min)',
+              'Worker 3: Schedule next week\'s visibility-focused tasks (30 min)',
+              'All: Weekly visibility strategy review meeting (30 min)',
             ],
           },
         ];
       }
       
     } else if (growthGoal === 'sales') {
+      // Sales weekly plan with worker assignments
       if (workers === 1) {
         weeklyPlanPlain = [
           {
             day: 'Monday',
             tasks: [
-              'You: Launch weekly promotion (AI creates promotional copy, you finalize)',
-              'AI: Announces promotion on all social media and email (you approve before sending)',
-              'You: Train yourself on current promotions and upselling techniques',
+              'You: Launch weekly promotion or special offer (30 min)',
+              'You: Announce promotion on all social media and email list (30 min)',
+              'You: Train yourself on current promotions and upselling techniques (30 min)',
             ],
           },
           {
             day: 'Tuesday',
             tasks: [
-              'You: Reach out to 5-10 previous customers with special offer (AI drafts personalized messages)',
-              'You: Update Google Business Profile with current promotions',
-              'You: Check inventory and create urgency messaging (AI suggests urgency copy)',
+              'You: Reach out to 5-10 previous customers with special offer (60 min)',
+              'You: Update Google Business Profile with current promotions (20 min)',
+              'You: Check inventory and create urgency messaging if needed (20 min)',
             ],
           },
           {
             day: 'Wednesday',
             tasks: [
-              'You: Follow up on pending inquiries and convert to sales',
-              'AI: Creates promotional content for next week (you review and approve)',
-              'You: Analyze which products sell best and promote them (AI suggests promotion ideas)',
+              'You: Follow up on pending inquiries and convert to sales (60 min)',
+              'You: Create promotional content for next week\'s campaigns (45 min)',
+              'You: Analyze which products/services sell best and promote them (30 min)',
             ],
           },
           {
             day: 'Thursday',
             tasks: [
-              'AI: Posts reminder about current promotion (you approve)',
-              'You: Contact customers who haven\'t purchased recently (AI drafts messages)',
-              'You: Evaluate promotion performance and adjust (AI provides analytics)',
+              'You: Post reminder about current promotion - create urgency (20 min)',
+              'You: Contact customers who haven\'t purchased recently (60 min)',
+              'You: Evaluate promotion performance and adjust if needed (30 min)',
             ],
           },
           {
             day: 'Friday',
             tasks: [
-              'AI: Compiles sales data and revenue report (you review)',
-              'You: Plan next week\'s promotions (AI suggests ideas)',
-              'AI: Sends end-of-week promotional email (you approve)',
+              'You: Review sales data and revenue for the week (30 min)',
+              'You: Plan next week\'s promotions and special offers (45 min)',
+              'You: Send end-of-week promotional email to email list (20 min)',
             ],
           },
         ];
@@ -807,130 +748,141 @@ export default function BusinessAdvisor() {
           {
             day: 'Monday',
             tasks: [
-              'Worker 1: Launches weekly promotion (AI creates copy, Worker 1 finalizes)',
-              'Worker 2: Announces promotion on social media (AI creates posts, Worker 2 posts)',
-              'Worker 1: Trains Worker 2 on promotions and upselling',
+              'Worker 1: Launch weekly promotion or special offer (30 min)',
+              'Worker 1: Announce promotion on all social media and email list (30 min)',
+              'Worker 2: Train staff on current promotions and upselling techniques (30 min)',
+              'Worker 2: Update in-store promotional displays (30 min)',
             ],
           },
           {
             day: 'Tuesday',
             tasks: [
-              'Worker 1: Reaches out to 5-10 previous customers (AI drafts messages)',
-              'Worker 2: Updates Google Business Profile with promotions',
-              'Worker 1: Checks inventory and creates urgency messaging (AI suggests copy)',
+              'Worker 1: Reach out to 5-10 previous customers with special offer (60 min)',
+              'Worker 2: Update Google Business Profile with current promotions (20 min)',
+              'Worker 1: Check inventory and create urgency messaging if needed (20 min)',
+              'Worker 2: Follow up on customer inquiries and convert to sales (60 min)',
             ],
           },
           {
             day: 'Wednesday',
             tasks: [
-              'Worker 2: Follows up on pending inquiries and converts to sales',
-              'AI: Creates promotional content for next week (both workers review)',
-              'Worker 1: Analyzes best-selling products (AI provides data)',
+              'Worker 1: Create promotional content for next week\'s campaigns (60 min)',
+              'Worker 2: Analyze which products/services sell best and promote them (45 min)',
+              'Worker 1: Contact customers who haven\'t purchased recently (45 min)',
             ],
           },
           {
             day: 'Thursday',
             tasks: [
-              'Worker 2: Posts promotion reminder (AI creates post)',
-              'Worker 1: Contacts lapsed customers (AI drafts messages)',
-              'Worker 2: Evaluates promotion performance (AI provides analytics)',
+              'Worker 1: Post reminder about current promotion - create urgency (20 min)',
+              'Worker 2: Evaluate promotion performance and adjust if needed (30 min)',
+              'Worker 1: Send follow-up emails to interested customers (45 min)',
+              'Worker 2: Update promotional messaging based on performance (30 min)',
             ],
           },
           {
             day: 'Friday',
             tasks: [
-              'AI: Compiles sales report (both workers review together)',
-              'Worker 1: Plans next week\'s promotions (AI suggests ideas)',
-              'Worker 2: Sends promotional email (AI drafts, Worker 2 approves)',
+              'Worker 1: Review sales data and revenue for the week (30 min)',
+              'Worker 2: Plan next week\'s promotions and special offers (45 min)',
+              'Worker 1: Send end-of-week promotional email to email list (20 min)',
+              'Both: Weekly sales strategy review meeting (30 min)',
             ],
           },
         ];
       } else {
+        // 3+ workers
         weeklyPlanPlain = [
           {
             day: 'Monday',
             tasks: [
-              'Worker 1: Launches promotion (AI creates copy)',
-              'Worker 2: Announces on social media (AI creates posts)',
-              'Worker 3: Trains team on upselling techniques',
+              'Worker 1: Launch weekly promotion or special offer (30 min)',
+              'Worker 2: Announce promotion on all social media and email list (30 min)',
+              'Worker 3: Train staff on current promotions and upselling techniques (30 min)',
+              'Worker 1: Update in-store promotional displays (30 min)',
             ],
           },
           {
             day: 'Tuesday',
             tasks: [
-              'Worker 1: Reaches out to previous customers (AI drafts messages)',
-              'Worker 2: Updates Google Business Profile',
-              'Worker 3: Creates urgency messaging (AI suggests copy)',
+              'Worker 1: Reach out to 5-10 previous customers with special offer (60 min)',
+              'Worker 2: Update Google Business Profile with current promotions (20 min)',
+              'Worker 3: Check inventory and create urgency messaging if needed (20 min)',
+              'Worker 1: Follow up on customer inquiries and convert to sales (60 min)',
             ],
           },
           {
             day: 'Wednesday',
             tasks: [
-              'Worker 2: Follows up on inquiries',
-              'AI: Creates next week\'s content (all review)',
-              'Worker 1: Analyzes sales data (AI provides insights)',
+              'Worker 1: Create promotional content for next week\'s campaigns (60 min)',
+              'Worker 2: Analyze which products/services sell best and promote them (45 min)',
+              'Worker 3: Contact customers who haven\'t purchased recently (60 min)',
+              'Worker 2: Update promotional materials based on best sellers (30 min)',
             ],
           },
           {
             day: 'Thursday',
             tasks: [
-              'Worker 3: Posts promotion reminders (AI creates)',
-              'Worker 1: Contacts lapsed customers (AI drafts)',
-              'Worker 2: Evaluates performance (AI provides analytics)',
+              'Worker 1: Post reminder about current promotion - create urgency (20 min)',
+              'Worker 2: Evaluate promotion performance and adjust if needed (30 min)',
+              'Worker 3: Send follow-up emails to interested customers (60 min)',
+              'Worker 1: Update promotional messaging based on performance (30 min)',
             ],
           },
           {
             day: 'Friday',
             tasks: [
-              'AI: Compiles sales report (all review)',
-              'Worker 1: Plans next promotions (AI suggests)',
-              'Worker 2: Sends email (AI drafts)',
+              'Worker 1: Review sales data and revenue for the week (30 min)',
+              'Worker 2: Plan next week\'s promotions and special offers (45 min)',
+              'Worker 3: Send end-of-week promotional email to email list (20 min)',
+              'All: Weekly sales strategy review meeting (30 min)',
             ],
           },
         ];
       }
       
     } else if (growthGoal === 'expansion') {
+      // Expansion weekly plan with worker assignments
       if (workers === 1) {
         weeklyPlanPlain = [
           {
             day: 'Monday',
             tasks: [
-              'You: Research potential expansion opportunities (AI compiles market data)',
-              'You: Analyze competitor expansion strategies (AI provides competitor analysis)',
-              'You: Review business financials and expansion readiness (AI creates financial summary)',
+              'You: Research potential expansion opportunities or locations (90 min)',
+              'You: Analyze competitor expansion strategies (60 min)',
+              'You: Review business financials and expansion readiness (60 min)',
             ],
           },
           {
             day: 'Tuesday',
             tasks: [
-              'You: Network with other business owners (AI drafts networking messages)',
-              'You: Research suppliers/vendors for scaling (AI suggests suppliers)',
-              'You: Document current processes (AI creates documentation templates)',
+              'You: Network with other business owners or industry contacts (90 min)',
+              'You: Research suppliers/vendors for scaling operations (60 min)',
+              'You: Document current processes that need to be standardized (60 min)',
             ],
           },
           {
             day: 'Wednesday',
             tasks: [
-              'You: Reach out to potential partners (AI drafts partnership proposals)',
-              'You: Develop expansion strategy (AI creates strategy framework)',
-              'You: Research local regulations (AI compiles regulatory information)',
+              'You: Reach out to potential partners or investors (90 min)',
+              'You: Develop expansion strategy and create action plan (90 min)',
+              'You: Research local regulations or requirements for expansion (60 min)',
             ],
           },
           {
             day: 'Thursday',
             tasks: [
-              'You: Attend networking events or industry meetings',
-              'You: Evaluate potential new markets (AI provides market analysis)',
-              'You: Create systems for scaling (AI suggests scalable process templates)',
+              'You: Attend networking events or industry meetings (120 min)',
+              'You: Evaluate potential new markets or customer segments (60 min)',
+              'You: Create systems and processes for scaling (60 min)',
             ],
           },
           {
             day: 'Friday',
             tasks: [
-              'AI: Compiles expansion research summary (you review and make decisions)',
-              'You: Update business plan with expansion goals (AI creates plan template)',
-              'You: Plan next steps and prioritize expansion tasks (AI suggests priorities)',
+              'You: Review expansion research and make decisions (90 min)',
+              'You: Update business plan with expansion goals (90 min)',
+              'You: Plan next steps and assign expansion-related tasks (60 min)',
             ],
           },
         ];
@@ -939,84 +891,90 @@ export default function BusinessAdvisor() {
           {
             day: 'Monday',
             tasks: [
-              'Worker 1: Researches expansion opportunities (AI compiles data)',
-              'Worker 2: Analyzes competitor strategies (AI provides analysis)',
-              'Worker 1: Reviews financials (AI creates summary)',
+              'Worker 1: Research potential expansion opportunities or locations (90 min)',
+              'Worker 2: Analyze competitor expansion strategies (90 min)',
+              'Worker 1: Review business financials and expansion readiness (60 min)',
             ],
           },
           {
             day: 'Tuesday',
             tasks: [
-              'Worker 2: Networks with business owners (AI drafts messages)',
-              'Worker 1: Researches suppliers (AI suggests options)',
-              'Worker 2: Documents processes (AI creates templates)',
+              'Worker 1: Network with other business owners or industry contacts (90 min)',
+              'Worker 2: Research suppliers/vendors for scaling operations (90 min)',
+              'Worker 1: Document current processes that need to be standardized (60 min)',
             ],
           },
           {
             day: 'Wednesday',
             tasks: [
-              'Worker 1: Reaches out to partners (AI drafts proposals)',
-              'Worker 2: Develops expansion strategy (AI creates framework)',
-              'Worker 1: Researches regulations (AI compiles info)',
+              'Worker 1: Reach out to potential partners or investors (90 min)',
+              'Worker 2: Develop expansion strategy and create action plan (90 min)',
+              'Worker 1: Research local regulations or requirements for expansion (60 min)',
             ],
           },
           {
             day: 'Thursday',
             tasks: [
-              'Worker 2: Attends networking events',
-              'Worker 1: Evaluates new markets (AI provides analysis)',
-              'Worker 2: Creates scalable systems (AI suggests templates)',
+              'Worker 1: Attend networking events or industry meetings (120 min)',
+              'Worker 2: Evaluate potential new markets or customer segments (90 min)',
+              'Worker 1: Create systems and processes for scaling (60 min)',
             ],
           },
           {
             day: 'Friday',
             tasks: [
-              'AI: Compiles research summary (both workers review together)',
-              'Worker 1: Updates business plan (AI creates template)',
-              'Worker 2: Plans next steps (AI suggests priorities)',
+              'Worker 1: Review expansion research and make decisions (90 min)',
+              'Worker 2: Update business plan with expansion goals (90 min)',
+              'Both: Plan next steps and assign expansion-related tasks together (60 min)',
             ],
           },
         ];
       } else {
+        // 3+ workers
         weeklyPlanPlain = [
           {
             day: 'Monday',
             tasks: [
-              'Worker 1: Researches opportunities (AI compiles data)',
-              'Worker 2: Analyzes competitors (AI provides analysis)',
-              'Worker 3: Reviews financials (AI creates summary)',
+              'Worker 1: Research potential expansion opportunities or locations (90 min)',
+              'Worker 2: Analyze competitor expansion strategies (90 min)',
+              'Worker 3: Review business financials and expansion readiness (60 min)',
+              'Worker 1: Compile initial expansion research report (30 min)',
             ],
           },
           {
             day: 'Tuesday',
             tasks: [
-              'Worker 1: Networks (AI drafts messages)',
-              'Worker 2: Researches suppliers (AI suggests)',
-              'Worker 3: Documents processes (AI creates templates)',
+              'Worker 1: Network with other business owners or industry contacts (90 min)',
+              'Worker 2: Research suppliers/vendors for scaling operations (90 min)',
+              'Worker 3: Document current processes that need to be standardized (90 min)',
+              'Worker 2: Create supplier comparison spreadsheet (30 min)',
             ],
           },
           {
             day: 'Wednesday',
             tasks: [
-              'Worker 1: Reaches out to partners (AI drafts proposals)',
-              'Worker 2: Develops strategy (AI creates framework)',
-              'Worker 3: Researches regulations (AI compiles)',
+              'Worker 1: Reach out to potential partners or investors (90 min)',
+              'Worker 2: Develop expansion strategy and create action plan (90 min)',
+              'Worker 3: Research local regulations or requirements for expansion (90 min)',
+              'Worker 1: Draft partnership proposal templates (60 min)',
             ],
           },
           {
             day: 'Thursday',
             tasks: [
-              'Worker 2: Attends events',
-              'Worker 1: Evaluates markets (AI provides analysis)',
-              'Worker 3: Creates systems (AI suggests templates)',
+              'Worker 1: Attend networking events or industry meetings (120 min)',
+              'Worker 2: Evaluate potential new markets or customer segments (90 min)',
+              'Worker 3: Create systems and processes for scaling (90 min)',
+              'Worker 2: Develop market analysis reports (60 min)',
             ],
           },
           {
             day: 'Friday',
             tasks: [
-              'AI: Compiles summary (all review)',
-              'Worker 1: Updates business plan (AI creates template)',
-              'Worker 2: Plans next steps (AI suggests priorities)',
+              'Worker 1: Review expansion research and make decisions (90 min)',
+              'Worker 2: Update business plan with expansion goals (90 min)',
+              'Worker 3: Plan next steps and assign expansion-related tasks (60 min)',
+              'All: Weekly expansion strategy review meeting (60 min)',
             ],
           },
         ];
@@ -1066,69 +1024,107 @@ export default function BusinessAdvisor() {
       };
     });
 
-    // 6) AI Contribution Summary
-    const aiContribution: string[] = [
-      'AI drafts all social media content, email templates, and marketing copy - you just review and approve',
-      'AI generates SEO-optimized descriptions and keywords for all your listings automatically',
-      'AI creates personalized customer outreach messages based on your business data',
-      'AI analyzes your resources and prioritizes tasks to maximize impact with minimal effort',
-      'AI schedules and organizes your weekly plan based on available time and workers',
-      'AI prepares all content calendars, posting schedules, and marketing templates',
-      'AI reduces manual work by 60-70%, allowing you to focus on customer service and business operations',
-      'AI provides data-driven recommendations, but YOU make all final decisions',
-    ];
-
-    // Optional collaborations (only for expansion)
+    // Collaborations - ONLY for expansion goal (as per new instructions)
     let collaborations: string[] | undefined = undefined;
     
     if (growthGoal === 'expansion') {
       collaborations = [
-        'Form strategic partnerships with suppliers or distributors',
-        'Partner with complementary businesses for joint expansion',
-        'Collaborate with investors or business mentors',
-        'Join industry associations for expansion networking',
+        'Form strategic partnerships with suppliers or distributors (WHY: Reliable supply chains are essential for scaling operations)',
+        'Partner with complementary businesses for joint expansion (WHY: Shared resources and market access accelerate growth)',
+        'Collaborate with investors or business mentors (WHY: Access to capital and expertise supports sustainable expansion)',
+        'Join industry associations for expansion networking (WHY: Industry connections provide expansion opportunities and best practices)',
       ];
     }
+    // Note: Collaborations are NOT included for visibility or sales goals per new instructions
 
     // Fundraising (optional, only if expansion goal)
     const fundraising: string[] | undefined = 
       growthGoal === 'expansion' && budget < 500
         ? [
-            'Consider small crowdfunding campaign for specific expansion goals (OPTIONAL - only if comfortable)',
-            'Explore local small business grants or loans (OPTIONAL - research carefully)',
-            'Look into community investment programs (OPTIONAL - understand terms first)',
-            'Research SBA loans or small business financing options (OPTIONAL - consult financial advisor)',
+            'Consider small crowdfunding campaign for specific expansion goals (OPTIONAL - AI only provides guidance, final decision is yours)',
+            'Explore local small business grants or loans (OPTIONAL - AI only provides guidance, final decision is yours)',
+            'Look into community investment programs (OPTIONAL - AI only provides guidance, final decision is yours)',
+            'Research SBA loans or small business financing options (OPTIONAL - AI only provides guidance, final decision is yours)',
           ]
         : undefined;
 
+    // AI Contribution Summary - clearly showing how AI reduces effort
+    let aiContributionSummary = `6) AI CONTRIBUTION SUMMARY\n\n`;
+    aiContributionSummary += `The AI plays a MAJOR role in reducing your workload and complexity:\n\n`;
+    
+    if (growthGoal === 'visibility') {
+      aiContributionSummary += `• DRAFTING CONTENT: AI generates ready-to-use social media captions, SEO-optimized business descriptions, and content calendars - saving you ${Math.ceil(timePerDay * 0.3)} hours per day\n`;
+      aiContributionSummary += `• CREATING PLANS: AI designs your weekly visibility action plan based on your time, budget, and workers - eliminating planning time\n`;
+      aiContributionSummary += `• GENERATING MESSAGES: AI drafts review request emails, directory submission content, and community engagement messages - ready for your review\n`;
+      aiContributionSummary += `• PRIORITIZING ACTIONS: AI identifies which visibility methods will have the most impact given your resources - preventing wasted effort\n`;
+      aiContributionSummary += `• REDUCING MANUAL EFFORT: AI handles ${automatedTasks.length} fully automated tasks and prepares ${aiAssistedTasks.length} tasks for your approval - reducing your daily workload by approximately ${Math.ceil((automatedTasks.length * 0.5) + (aiAssistedTasks.length * 0.3))} hours\n\n`;
+      aiContributionSummary += `The AI does NOT replace your personal touch, judgment, or authentic voice - it handles the time-consuming preparation work so you can focus on building genuine customer relationships.`;
+    } else if (growthGoal === 'sales') {
+      aiContributionSummary += `• DRAFTING CONTENT: AI generates promotional email templates, sales copy, and social media posts promoting offers - saving you ${Math.ceil(timePerDay * 0.4)} hours per day\n`;
+      aiContributionSummary += `• CREATING PLANS: AI designs your weekly sales action plan with specific promotions and customer outreach strategies - eliminating planning time\n`;
+      aiContributionSummary += `• GENERATING MESSAGES: AI drafts customer outreach scripts, promotional announcements, and follow-up templates - ready for your personalization\n`;
+      aiContributionSummary += `• PRIORITIZING ACTIONS: AI identifies which sales methods will drive the most revenue given your budget and time - maximizing ROI\n`;
+      aiContributionSummary += `• REDUCING MANUAL EFFORT: AI handles ${automatedTasks.length} fully automated tasks (email campaigns, inventory alerts) and prepares ${aiAssistedTasks.length} tasks for your approval - reducing your daily workload by approximately ${Math.ceil((automatedTasks.length * 0.6) + (aiAssistedTasks.length * 0.4))} hours\n\n`;
+      aiContributionSummary += `The AI does NOT replace your personal customer relationships or sales judgment - it handles the preparation work so you can focus on converting leads and building customer loyalty.`;
+    } else if (growthGoal === 'expansion') {
+      aiContributionSummary += `• DRAFTING CONTENT: AI generates market research summaries, business plan templates, partnership proposals, and financial models - saving you ${Math.ceil(timePerDay * 0.5)} hours per day\n`;
+      aiContributionSummary += `• CREATING PLANS: AI designs your weekly expansion action plan with research tasks, networking strategies, and scaling processes - eliminating planning time\n`;
+      aiContributionSummary += `• GENERATING MESSAGES: AI drafts partnership proposal templates, investor pitch frameworks, and expansion strategy documents - ready for your customization\n`;
+      aiContributionSummary += `• PRIORITIZING ACTIONS: AI identifies which expansion opportunities align with your resources and goals - preventing costly mistakes\n`;
+      aiContributionSummary += `• REDUCING MANUAL EFFORT: AI handles ${automatedTasks.length} fully automated tasks (reporting, documentation) and prepares ${aiAssistedTasks.length} tasks for your analysis - reducing your daily workload by approximately ${Math.ceil((automatedTasks.length * 0.4) + (aiAssistedTasks.length * 0.5))} hours\n\n`;
+      aiContributionSummary += `The AI does NOT replace your strategic decision-making or business judgment - it provides research, templates, and analysis so you can make informed expansion decisions.`;
+    }
+
     return {
-      businessSummary,
-      growthGoalIdentified,
+      analysis,
       methods,
       automatedTasks,
       aiAssistedTasks,
       humanOnlyTasks,
       weeklyPlan,
-      aiContribution,
       collaborations,
       fundraising,
+      aiContributionSummary,
     };
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Automatically send WhatsApp message when data is entered
-    try {
-      await sendWhatsAppMessage({
-        shopName: inputs.businessType || 'New Business',
-        businessType: inputs.businessType || 'Business',
-        websiteLink: window.location.origin,
+    // Send shop information message to 8825484735 immediately when form is submitted
+    if (typeof window !== 'undefined') {
+      import('@/services/whatsappAlertsService').then(({ sendWhatsAppAlert }) => {
+        const shopInfoMessage = {
+          type: 'special-occasion' as const,
+          message: `🏪 NEW SHOP REGISTRATION - Growth Strategy Request
+
+📋 Shop Information:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Business Type: ${inputs.businessType || 'Not specified'}
+Monthly Budget: ₹${(parseFloat(inputs.budget) || 0).toLocaleString('en-IN')}
+Time Available: ${inputs.timePerDay || '0'} hours per day
+Number of Workers: ${inputs.numberOfWorkers || '1'}
+Growth Goal: ${inputs.growthGoal === 'visibility' ? 'Increase Visibility' : inputs.growthGoal === 'sales' ? 'Increase Sales' : 'Business Expansion'}
+Target Time Span: ${inputs.targetTimeSpan || '30'} days
+Owner Mobile Number: ${inputs.ownerMobile || 'Not provided'}
+
+✅ Shop data submitted successfully!
+📅 Growth strategy is being generated...
+
+This message was sent automatically when the owner clicked "Get My Growth Strategy".`,
+          priority: 'medium' as const,
+          timestamp: new Date(),
+        };
+        // Always send to 8825484735
+        sendWhatsAppAlert(shopInfoMessage, '8825484735').then((success) => {
+          if (success) {
+            console.log('Shop information sent to 8825484735 successfully');
+          } else {
+            console.warn('Failed to send shop information to 8825484735');
+          }
+        });
       });
-    } catch (error) {
-      console.error('WhatsApp message error:', error);
-      // Continue even if WhatsApp fails
     }
     
     // Simulate processing time for better UX
@@ -1136,16 +1132,37 @@ export default function BusinessAdvisor() {
       const recs = generateRecommendations(inputs);
       setRecommendations(recs);
       
-      // Schedule tasks from weekly plan
-      if (recs.weeklyPlan && recs.weeklyPlan.length > 0) {
-        const weeklyPlanPlain = recs.weeklyPlan.map(day => ({
-          day: day.day,
-          tasks: day.tasks.map(t => t.text),
-        }));
-        scheduleTasksFromWeeklyPlan(weeklyPlanPlain, parseInt(inputs.numberOfWorkers) || 1);
-      }
+      // Generate detailed plan using new service
+      const budget = parseFloat(inputs.budget) || 0;
+      const timePerDay = parseFloat(inputs.timePerDay) || 0;
+      const workers = parseInt(inputs.numberOfWorkers) || 1;
+      const timeSpan = parseInt(inputs.targetTimeSpan) || 30;
+      const detailed = generateDetailedPlan(
+        inputs.businessType || 'Business',
+        budget,
+        timePerDay,
+        workers,
+        inputs.growthGoal,
+        timeSpan
+      );
+      setDetailedPlan(detailed);
       
       setIsLoading(false);
+      
+      // Save weekly plan and owner mobile for Operational Dashboard
+      if (typeof window !== 'undefined') {
+        // Convert DayPlan[] to simple format for operational service
+        const simplePlan = recs.weeklyPlan.map(dayPlan => ({
+          day: dayPlan.day,
+          tasks: dayPlan.tasks.map(task => task.text)
+        }));
+        localStorage.setItem('businessAdvisor_weeklyPlan', JSON.stringify(simplePlan));
+        
+        // Save owner mobile number
+        if (inputs.ownerMobile) {
+          setOwnerMobileNumber(inputs.ownerMobile);
+        }
+      }
       
       // Scroll to results
       setTimeout(() => {
@@ -1186,19 +1203,25 @@ export default function BusinessAdvisor() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="budget" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Monthly Budget (₹ INR) *
+                Monthly Budget (in rupees) *
               </label>
-              <input
-                type="number"
-                id="budget"
-                min="0"
-                step="10"
-                value={inputs.budget}
-                onChange={(e) => setInputs({ ...inputs, budget: e.target.value })}
-                placeholder="0"
-                required
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">₹</span>
+                <input
+                  type="number"
+                  id="budget"
+                  min="0"
+                  step="10"
+                  value={inputs.budget}
+                  onChange={(e) => setInputs({ ...inputs, budget: e.target.value })}
+                  placeholder="0"
+                  required
+                  className="w-full pl-8 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Enter your monthly marketing budget in Indian Rupees (₹)
+              </p>
             </div>
 
             <div>
@@ -1271,6 +1294,24 @@ export default function BusinessAdvisor() {
             </select>
           </div>
 
+          <div>
+            <label htmlFor="ownerMobile" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Owner Mobile Number (for WhatsApp alerts) *
+            </label>
+            <input
+              type="tel"
+              id="ownerMobile"
+              value={inputs.ownerMobile || ''}
+              onChange={(e) => setInputs({ ...inputs, ownerMobile: e.target.value })}
+              placeholder="+91 9876543210"
+              required
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              This number will receive WhatsApp alerts for stock exhaustion, sales drops, and special occasions
+            </p>
+          </div>
+
           <button
             type="submit"
             disabled={isLoading}
@@ -1281,139 +1322,279 @@ export default function BusinessAdvisor() {
         </form>
       </div>
 
-      {recommendations && (
+      {recommendations && detailedPlan && (
         <div id="results" className="space-y-6">
-          {/* 1) Business Summary */}
+          {/* VERY DETAILED EXECUTION PLAN */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg shadow-lg p-6 border-2 border-blue-300 dark:border-blue-700">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              📋 VERY DETAILED STEP-BY-STEP EXECUTION PLAN
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              This is your actionable, physical/digital execution plan with exact rupee breakdown, worker assignments, and time-based steps.
+            </p>
+
+            {/* Business Summary */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">1) Business Summary</h3>
+              <p className="text-gray-700 dark:text-gray-300">{detailedPlan.businessSummary}</p>
+            </div>
+
+            {/* Selected Goal */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">2) Selected Growth Goal</h3>
+              <p className="text-gray-700 dark:text-gray-300 font-semibold">{detailedPlan.selectedGoal}</p>
+            </div>
+
+            {/* Exact Marketing Actions */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">3) Exact Marketing Actions (NO Generic Language)</h3>
+              <div className="space-y-3">
+                {detailedPlan.exactActions.map((action, idx) => (
+                  <div key={idx} className="border-l-4 border-blue-500 pl-4 py-2 bg-gray-50 dark:bg-gray-700 rounded">
+                    <p className="font-semibold text-gray-900 dark:text-white mb-1">{action.action}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-1"><strong>HOW:</strong> {action.how}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-1"><strong>WHO:</strong> {action.who}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-1"><strong>COST:</strong> ₹{action.cost.toLocaleString('en-IN')}</p>
+                    {action.location && <p className="text-sm text-gray-700 dark:text-gray-300 mb-1"><strong>WHERE:</strong> {action.location}</p>}
+                    <p className="text-sm text-gray-700 dark:text-gray-300"><strong>WHEN:</strong> {action.timing}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Exact Budget Breakdown */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">4) Exact Budget Breakdown (₹-wise)</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-100 dark:bg-gray-700">
+                      <th className="px-3 py-2 text-left">Item</th>
+                      <th className="px-3 py-2 text-right">Quantity</th>
+                      <th className="px-3 py-2 text-right">Unit Cost</th>
+                      <th className="px-3 py-2 text-right">Total Cost</th>
+                      <th className="px-3 py-2 text-left">Purpose</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detailedPlan.budgetBreakdown.map((item, idx) => (
+                      <tr key={idx} className="border-b border-gray-200 dark:border-gray-600">
+                        <td className="px-3 py-2">{item.item}</td>
+                        <td className="px-3 py-2 text-right">{item.quantity}</td>
+                        <td className="px-3 py-2 text-right">₹{item.unitCost.toLocaleString('en-IN')}</td>
+                        <td className="px-3 py-2 text-right font-semibold">₹{item.totalCost.toLocaleString('en-IN')}</td>
+                        <td className="px-3 py-2">{item.purpose}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-blue-50 dark:bg-blue-900/20 font-bold">
+                      <td colSpan={3} className="px-3 py-2 text-right">Total Budget Used:</td>
+                      <td className="px-3 py-2 text-right">₹{detailedPlan.budgetBreakdown.reduce((sum, item) => sum + item.totalCost, 0).toLocaleString('en-IN')}</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Worker-Wise Task Assignment */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">5) Worker-Wise Task Assignment</h3>
+              <div className="space-y-4">
+                {detailedPlan.workerAssignments.map((assignment, idx) => (
+                  <div key={idx} className="border-l-4 border-purple-500 pl-4 py-2 bg-gray-50 dark:bg-gray-700 rounded">
+                    <p className="font-bold text-gray-900 dark:text-white mb-2">{assignment.worker} ({assignment.timePerDay.toFixed(1)} hours/day)</p>
+                    <ul className="space-y-1">
+                      {assignment.tasks.map((task, taskIdx) => (
+                        <li key={taskIdx} className="text-sm text-gray-700 dark:text-gray-300">• {task}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Time-Based Execution Plan */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">6) Time-Based Execution Plan</h3>
+              <div className="space-y-4">
+                {detailedPlan.timeBasedExecution.map((period, idx) => (
+                  <div key={idx} className="border-l-4 border-green-500 pl-4 py-2 bg-gray-50 dark:bg-gray-700 rounded">
+                    <p className="font-bold text-gray-900 dark:text-white mb-2">{period.period}</p>
+                    <ul className="space-y-1 mb-2">
+                      {period.actions.map((action, actionIdx) => (
+                        <li key={actionIdx} className="text-sm text-gray-700 dark:text-gray-300">• {action}</li>
+                      ))}
+                    </ul>
+                    <p className="text-sm font-semibold text-green-700 dark:text-green-400">Expected Results: {period.expectedResults}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Task Classification */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">7) Task Classification</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-green-50 dark:bg-green-900/20 rounded p-3">
+                  <h4 className="font-bold text-green-800 dark:text-green-300 mb-2">Automated (AI)</h4>
+                  <ul className="space-y-1 text-sm">
+                    {detailedPlan.taskClassification.automated.map((task, idx) => (
+                      <li key={idx} className="text-green-700 dark:text-green-300">• {task}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded p-3">
+                  <h4 className="font-bold text-yellow-800 dark:text-yellow-300 mb-2">AI-Assisted</h4>
+                  <ul className="space-y-1 text-sm">
+                    {detailedPlan.taskClassification.aiAssisted.map((task, idx) => (
+                      <li key={idx} className="text-yellow-700 dark:text-yellow-300">• {task}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-3">
+                  <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-2">Human-Only</h4>
+                  <ul className="space-y-1 text-sm">
+                    {detailedPlan.taskClassification.humanOnly.map((task, idx) => (
+                      <li key={idx} className="text-blue-700 dark:text-blue-300">• {task}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Contribution Summary */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">8) AI Contribution Summary</h3>
+              <p className="text-gray-700 dark:text-gray-300">{detailedPlan.aiContribution}</p>
+            </div>
+
+            {/* Safety Note */}
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
+              <h3 className="text-xl font-bold text-red-900 dark:text-red-300 mb-2">9) Safety Note</h3>
+              <p className="text-red-800 dark:text-red-200">{detailedPlan.safetyNote}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {recommendations && !detailedPlan && (
+        <div id="results" className="space-y-6">
+          {/* Analysis Section */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              1) Business Summary
+              Growth Strategy Analysis
             </h2>
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-              {recommendations.businessSummary}
-            </p>
+            <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+              {recommendations.analysis}
+            </div>
           </div>
 
-          {/* 2) Growth Goal Identified */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg shadow-lg p-6 border-l-4 border-blue-500">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              2) Growth Goal Identified
-            </h2>
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-              {recommendations.growthGoalIdentified}
-            </p>
-          </div>
-
-          {/* 3) Recommended Growth Methods (Goal-Specific) */}
+          {/* Recommended Methods */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
               3) Recommended Growth Methods (Goal-Specific)
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 italic">
-              Each method is specifically chosen for your selected growth goal. Here's WHY each one fits:
+            <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm">
+              Each method below is specifically chosen for your selected growth goal. The "WHY" explanation shows how each method fits your goal.
             </p>
-            <div className="space-y-4">
-              {recommendations.methods.map((methodItem, index) => (
-                <div key={index} className="border-l-4 border-green-500 pl-4 py-2 bg-green-50 dark:bg-green-900/10 rounded-r">
-                  <div className="flex items-start">
-                    <span className="text-green-500 mr-2 mt-1 font-bold">✓</span>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900 dark:text-white mb-1">
-                        {methodItem.method}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 italic">
-                        {methodItem.explanation}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 4) Task Breakdown (Goal-Specific) */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              4) Task Breakdown (Goal-Specific)
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 italic">
-              Tasks are organized based on your selected growth goal. These lists change completely depending on whether you chose Visibility, Sales, or Expansion.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg shadow-lg p-6">
-                <h3 className="text-xl font-bold text-green-800 dark:text-green-300 mb-3">
-                  🤖 Automated Tasks (AI)
-                </h3>
-                <p className="text-sm text-green-700 dark:text-green-400 mb-3">
-                  AI can fully handle these without your input:
-                </p>
-                <ul className="space-y-2">
-                  {recommendations.automatedTasks.map((task, index) => (
-                    <li key={index} className="text-sm text-green-700 dark:text-green-300">
-                      • {task}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg shadow-lg p-6">
-                <h3 className="text-xl font-bold text-yellow-800 dark:text-yellow-300 mb-3">
-                  🔧 AI-Assisted Tasks
-                </h3>
-                <p className="text-sm text-yellow-700 dark:text-yellow-400 mb-3">
-                  AI prepares, you review and approve:
-                </p>
-                <ul className="space-y-2">
-                  {recommendations.aiAssistedTasks.map((task, index) => (
-                    <li key={index} className="text-sm text-yellow-700 dark:text-yellow-300">
-                      • {task}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow-lg p-6">
-                <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-3">
-                  👤 Human-Only Tasks
-                </h3>
-                <p className="text-sm text-blue-700 dark:text-blue-400 mb-3">
-                  Requires your personal touch and decision-making:
-                </p>
-                <ul className="space-y-2">
-                  {recommendations.humanOnlyTasks.map((task, index) => (
-                    <li key={index} className="text-sm text-blue-700 dark:text-blue-300">
-                      • {task}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* 6) AI Contribution Summary */}
-          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg shadow-lg p-6 border-l-4 border-indigo-500">
-            <h2 className="text-2xl font-bold text-indigo-800 dark:text-indigo-300 mb-4">
-              6) AI Contribution Summary
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 italic">
-              Here's exactly how AI reduces your workload and complexity:
-            </p>
-            <ul className="space-y-3">
-              {recommendations.aiContribution.map((contribution, index) => (
-                <li key={index} className="flex items-start text-indigo-700 dark:text-indigo-300">
-                  <span className="text-indigo-500 mr-2 mt-1">🤖</span>
-                  <span className="text-sm">{contribution}</span>
+            <ul className="space-y-2">
+              {recommendations.methods.map((method, index) => (
+                <li key={index} className="flex items-start">
+                  <span className="text-blue-500 mr-2 mt-1">✓</span>
+                  <span className="text-gray-700 dark:text-gray-300">{method}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* 5) Weekly Action Plan (Goal-Specific) */}
+          {/* Task Categories */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              4) Task Breakdown (Goal-Specific)
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm">
+              Tasks are classified based on your selected growth goal. These lists change completely depending on whether you chose Visibility, Sales, or Expansion.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-bold text-green-800 dark:text-green-300 mb-3">
+                🤖 Automated Tasks (AI)
+              </h3>
+              <p className="text-sm text-green-700 dark:text-green-400 mb-3">
+                AI can fully handle these:
+              </p>
+              <ul className="space-y-2">
+                {recommendations.automatedTasks.map((task, index) => (
+                  <li key={index} className="text-sm text-green-700 dark:text-green-300">
+                    • {task}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-bold text-yellow-800 dark:text-yellow-300 mb-3">
+                🔧 AI-Assisted Tasks
+              </h3>
+              <p className="text-sm text-yellow-700 dark:text-yellow-400 mb-3">
+                AI prepares, human approves:
+              </p>
+              <ul className="space-y-2">
+                {recommendations.aiAssistedTasks.map((task, index) => (
+                  <li key={index} className="text-sm text-yellow-700 dark:text-yellow-300">
+                    • {task}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-3">
+                👤 Human-Only Tasks
+              </h3>
+              <p className="text-sm text-blue-700 dark:text-blue-400 mb-3">
+                Requires your personal touch:
+              </p>
+              <ul className="space-y-2">
+                {recommendations.humanOnlyTasks.map((task, index) => (
+                  <li key={index} className="text-sm text-blue-700 dark:text-blue-300">
+                    • {task}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* AI Role Explanation */}
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg shadow-lg p-6 border-l-4 border-indigo-500">
+            <h2 className="text-2xl font-bold text-indigo-800 dark:text-indigo-300 mb-4">
+              🤖 Understanding the AI's Role
+            </h2>
+            <div className="space-y-3 text-indigo-700 dark:text-indigo-300">
+              <div>
+                <p className="font-semibold mb-1">What the AI Prepares Automatically:</p>
+                <p className="text-sm">The AI generates ready-to-use content like social media captions, content ideas, posting schedules, and checklists. These are labeled "AI-Prepared" and can be used directly.</p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1">What Requires Your Review:</p>
+                <p className="text-sm">Tasks labeled "Human Review Required" include AI suggestions that need your approval or personalization to match your brand voice and business values.</p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1">Why Full Automation is Avoided:</p>
+                <p className="text-sm">Your personal touch, judgment, and authentic voice are essential for building genuine customer relationships. The AI assists but doesn't replace your unique business perspective.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Weekly Plan */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
               5) Weekly Action Plan (Goal-Specific)
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              This plan is completely customized for your selected growth goal and uses your available workers intelligently. Tasks are assigned to specific workers when you have multiple team members.
+              This weekly plan is specifically designed for your selected growth goal and uses your available time, budget, and workers intelligently. 
+              Tasks are assigned to specific workers when multiple workers are available.
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
               Click on any task to mark it as completed or skipped. Your feedback helps improve future recommendations.
@@ -1578,15 +1759,12 @@ export default function BusinessAdvisor() {
             </div>
           </div>
 
-          {/* Optional Collaborations (only for expansion) */}
+          {/* Collaborations */}
           {recommendations.collaborations && recommendations.collaborations.length > 0 && (
             <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg shadow-lg p-6">
               <h2 className="text-2xl font-bold text-purple-800 dark:text-purple-300 mb-4">
                 Optional Collaboration Ideas
               </h2>
-              <p className="text-sm text-purple-700 dark:text-purple-400 mb-3 italic">
-                Only suggested for Business Expansion goal. These are optional - consider only if they align with your vision.
-              </p>
               <ul className="space-y-2">
                 {recommendations.collaborations.map((collab, index) => (
                   <li key={index} className="flex items-start">
@@ -1598,14 +1776,14 @@ export default function BusinessAdvisor() {
             </div>
           )}
 
-          {/* Optional Fundraising (only for expansion) */}
+          {/* Fundraising */}
           {recommendations.fundraising && recommendations.fundraising.length > 0 && (
             <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg shadow-lg p-6">
               <h2 className="text-2xl font-bold text-orange-800 dark:text-orange-300 mb-4">
                 Optional Fundraising & Investment Ideas
               </h2>
               <p className="text-sm text-orange-700 dark:text-orange-400 mb-3 italic">
-                Only suggested for Business Expansion goal. These are completely optional - only consider if you're comfortable with them. Always consult with financial advisors before making investment decisions.
+                These are completely optional. Only consider if you're comfortable with them.
               </p>
               <ul className="space-y-2">
                 {recommendations.fundraising.map((item, index) => (
@@ -1618,31 +1796,43 @@ export default function BusinessAdvisor() {
             </div>
           )}
 
-          {/* Scheduling Calendar */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-            <SchedulingCalendar
-              weeklyPlan={recommendations.weeklyPlan.map(day => ({
-                day: day.day,
-                tasks: day.tasks.map(t => t.text),
-              }))}
-              workers={parseInt(inputs.numberOfWorkers) || 1}
-            />
-          </div>
+          {/* AI Contribution Summary */}
+          {recommendations.aiContributionSummary && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-blue-900 dark:text-blue-300 mb-4">
+                🤖 AI Contribution Summary
+              </h2>
+              <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                {recommendations.aiContributionSummary}
+              </div>
+            </div>
+          )}
 
-          {/* 7) Safety & Responsibility Note */}
-          <div className="bg-gray-50 dark:bg-gray-900 rounded-lg shadow-lg p-6 border-l-4 border-gray-400">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-              7) Safety & Responsibility Note
+          {/* Safety & Responsibility Note */}
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
+            <h3 className="text-lg font-bold text-yellow-900 dark:text-yellow-300 mb-3">
+              7) SAFETY & RESPONSIBILITY NOTE
             </h3>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">
-              <strong>Results are not guaranteed.</strong> This AI assistant provides guidance and suggestions based on your inputs. All final decisions remain with you, the business owner.
-            </p>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">
-              <strong>All spending, collaboration, and investment is optional and owner-controlled.</strong> You decide what to implement, when to implement it, and how much to spend. The AI only provides recommendations - you have full control.
-            </p>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-              Results may vary based on your local market, competition, execution quality, and many other factors. Always consider what feels right for your business and customers. This is a tool to assist you, not replace your judgment.
-            </p>
+            <div className="text-sm text-yellow-800 dark:text-yellow-200 space-y-2">
+              <p>
+                <strong>Results Not Guaranteed:</strong> This AI assistant provides guidance and suggestions based on your inputs. 
+                Results may vary based on your local market, competition, execution quality, and external factors beyond our control.
+              </p>
+              <p>
+                <strong>Optional Spending:</strong> Any spending, collaboration, investment, or fundraising suggestions are 
+                <strong> OPTIONAL</strong> and <strong>OWNER-CONTROLLED</strong>. The AI only provides guidance - all final decisions 
+                remain with you, the business owner.
+              </p>
+              <p>
+                <strong>AI Role:</strong> The AI acts as a powerful assistant that reduces effort and complexity, but does NOT 
+                replace human decision-making, personal judgment, or authentic business relationships.
+              </p>
+              <p>
+                <strong>Your Responsibility:</strong> You are responsible for all business decisions, spending, partnerships, and 
+                outcomes. Always verify information, consult professionals when needed, and make decisions that align with your 
+                business values and goals.
+              </p>
+            </div>
           </div>
         </div>
       )}

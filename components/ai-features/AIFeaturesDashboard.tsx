@@ -12,6 +12,7 @@ import InstagramAutoPoster from './InstagramAutoPoster';
 import AIOutreach from './AIOutreach';
 import MysteryDrink from './MysteryDrink';
 import SmellToImage from './SmellToImage';
+import BeveragePersonalizationAssistant from './BeveragePersonalizationAssistant';
 
 interface ShopData {
   shopName: string;
@@ -41,6 +42,7 @@ export default function AIFeaturesDashboard({ shopData }: AIFeaturesDashboardPro
     { id: 'dynamic-pricing', name: 'Smart Dynamic Pricing', icon: '💰', component: SmartDynamicPricing },
     { id: 'instagram', name: 'Instagram Auto-Poster', icon: '📱', component: InstagramAutoPoster },
     { id: 'outreach', name: 'AI Outreach', icon: '📧', component: AIOutreach },
+    { id: 'beverage-personalization', name: 'Beverage Personalization', icon: '🎯', component: BeveragePersonalizationAssistant },
   ];
 
   const ActiveComponent = activeFeature 

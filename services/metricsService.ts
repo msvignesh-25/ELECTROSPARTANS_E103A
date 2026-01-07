@@ -43,26 +43,36 @@ export interface MetricsData {
 
 // Store orders
 export function saveOrder(order: Order) {
-  const orders = loadOrders();
-  orders.push(order);
-  localStorage.setItem('orders', JSON.stringify(orders));
+  if (typeof window !== 'undefined') {
+    const orders = loadOrders();
+    orders.push(order);
+    localStorage.setItem('orders', JSON.stringify(orders));
+  }
 }
 
 export function loadOrders(): Order[] {
-  const saved = localStorage.getItem('orders');
-  return saved ? JSON.parse(saved) : [];
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('orders');
+    return saved ? JSON.parse(saved) : [];
+  }
+  return [];
 }
 
 // Store reviews
 export function saveReview(review: Review) {
-  const reviews = loadReviews();
-  reviews.push(review);
-  localStorage.setItem('reviews', JSON.stringify(reviews));
+  if (typeof window !== 'undefined') {
+    const reviews = loadReviews();
+    reviews.push(review);
+    localStorage.setItem('reviews', JSON.stringify(reviews));
+  }
 }
 
 export function loadReviews(): Review[] {
-  const saved = localStorage.getItem('reviews');
-  return saved ? JSON.parse(saved) : [];
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('reviews');
+    return saved ? JSON.parse(saved) : [];
+  }
+  return [];
 }
 
 // Calculate monthly revenue

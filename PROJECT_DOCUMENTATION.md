@@ -1,16 +1,25 @@
-# Business Growth Assistant - Complete Project Documentation
+# AI-Powered Business Management System - Complete Project Documentation
 
 ## 📋 Project Overview
 
-This is a **Next.js 14 web application** (using the App Router) that serves as an **AI-powered business growth assistant** designed specifically for small and family-run shops with low visibility and limited resources. The application analyzes business constraints (budget, time, team size) and provides personalized, realistic growth strategies.
+This is a **comprehensive Next.js 14 web application** (using the App Router) that serves as an **AI-powered business management and growth assistant** designed specifically for small and family-run businesses. The system provides:
+
+- **Business Growth Advisor**: Personalized marketing strategies based on constraints
+- **Operational AI Assistant**: Automated task scheduling, stock monitoring, and alerts
+- **Owner Dashboard**: Complete business overview with metrics and scheduling
+- **Customer Interface**: Shopping experience with cart management
+- **Investor Portal**: Analytics and performance metrics
+- **AI Features**: 13+ unique AI-powered marketing features
 
 ### Core Purpose
 The application helps business owners by:
-- Analyzing their specific resource constraints
-- Recommending appropriate marketing and growth methods based on available resources
-- Categorizing tasks into automated, AI-assisted, and human-only
-- Providing actionable weekly action plans
-- Suggesting optional collaborations and fundraising ideas when appropriate
+- Analyzing specific resource constraints (budget, time, team size)
+- Providing **very detailed, step-by-step execution plans** with exact rupee breakdowns
+- Automatically generating daily task lists based on constraints
+- Monitoring stock levels and sending alerts via WhatsApp
+- Tracking sales performance and growth metrics
+- Offering unique AI-powered marketing experiences
+- Sending automated notifications to owners and customers
 
 ---
 
@@ -27,82 +36,676 @@ The application helps business owners by:
 - **Autoprefixer 10.4.17** (CSS vendor prefixing)
 - **TypeScript compiler** (type checking and compilation)
 
----
-
-## 📁 Project Structure & File Breakdown
-
-### Root Directory Files
-
-```
-Project 1/
-├── app/                          # Next.js App Router directory
-│   ├── layout.tsx               # Root layout (wraps all pages)
-│   ├── page.tsx                 # Home page (main entry point)
-│   ├── globals.css              # Global styles
-│   ├── about/
-│   │   └── page.tsx            # About page route
-│   └── contact/
-│       └── page.tsx            # Contact page route
-├── components/                   # Reusable React components
-│   ├── BusinessAdvisor.tsx     # MAIN COMPONENT - Core functionality
-│   ├── Navbar.tsx              # Navigation bar
-│   ├── Footer.tsx              # Footer component
-│   ├── Logo.tsx                # Logo component
-│   ├── HeroSection.tsx         # Hero section (if used)
-│   ├── HowItWorks.tsx          # How it works section (if used)
-│   └── ThemeToggle.tsx         # Dark mode toggle (if used)
-├── public/                      # Static assets
-│   ├── favicon.ico
-│   └── logo.png
-├── package.json                 # Dependencies and scripts
-├── tsconfig.json                # TypeScript configuration
-├── tailwind.config.js           # Tailwind CSS configuration
-├── postcss.config.js            # PostCSS configuration
-└── next-env.d.ts                # Next.js TypeScript declarations
-```
+### Key Features
+- **Server-Side Rendering (SSR)** with Next.js App Router
+- **Client-Side State Management** with React Hooks
+- **Local Storage** for data persistence
+- **WhatsApp Integration** for alerts (8825484735)
+- **Responsive Design** with Tailwind CSS
+- **Dark Mode Support** throughout
 
 ---
 
-## 🔑 Key Files Explained
+## 📁 Complete Project Structure
 
-### 1. **`app/page.tsx`** - Home Page (Entry Point)
-**Purpose**: Main landing page that displays the Business Advisor interface
+### Application Pages (app/)
 
-**What it does**:
-- Imports and renders the `BusinessAdvisor` component
-- Provides the main page layout with dark mode support
-- Acts as the root route (`/`)
+```
+app/
+├── layout.tsx                    # Root layout with Navbar/Footer
+├── page.tsx                      # Home page (Business Advisor)
+├── globals.css                   # Global styles & Tailwind
+│
+├── about/
+│   └── page.tsx                  # About page (/about)
+│
+├── contact/
+│   └── page.tsx                  # Contact page (/contact)
+│
+├── customer/
+│   └── page.tsx                  # Customer shopping page (/customer)
+│
+├── owner/
+│   └── page.tsx                  # Owner dashboard (/owner)
+│
+├── investor/
+│   └── page.tsx                  # Investor portal (/investor)
+│
+├── ai-features/
+│   └── page.tsx                  # AI features showcase (/ai-features)
+│
+└── queries/
+    └── page.tsx                  # Customer queries page (/queries)
+```
 
-**Code Structure**:
-```tsx
-'use client';  // Marks as client component (uses React hooks)
-import BusinessAdvisor from '@/components/BusinessAdvisor';
+### Components
 
-export default function Home() {
-  return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-      <main className="py-8">
-        <BusinessAdvisor />
-      </main>
-    </div>
-  );
+```
+components/
+├── BusinessAdvisor.tsx           # Main Business Growth Advisor (~1,841 lines)
+├── EnhancedSchedulingCalendar.tsx # Enhanced Calendar with Reminders
+├── SchedulingCalendar.tsx         # Basic Scheduling Calendar
+├── OperationalDashboard.tsx      # Operational AI Dashboard
+├── MetricsDashboard.tsx          # Shared Metrics Dashboard
+├── Navbar.tsx                    # Navigation Bar
+├── Footer.tsx                    # Footer Component
+├── HeroSection.tsx               # Hero Section
+├── HowItWorks.tsx                # How It Works Section
+├── ThemeToggle.tsx               # Dark/Light Theme Toggle
+├── Logo.tsx                      # Logo Component
+│
+└── ai-features/                  # AI Feature Components (13 files)
+    ├── AIFeaturesDashboard.tsx
+    ├── AIFeaturesLink.tsx
+    ├── AIFlavorProfiler.tsx      # AI Flavor Profiler Quiz
+    ├── AIGuestbook.tsx           # Voice-to-Visual Guestbook
+    ├── AIOutreach.tsx            # AI Outreach Automation
+    ├── AIPoetryReceipt.tsx       # AI Poetry Receipt
+    ├── AISleeveArt.tsx           # AI-Generated Sleeve Art
+    ├── DigitalBarista.tsx        # Digital Barista Lore
+    ├── InstagramAutoPoster.tsx   # Instagram Auto Posting
+    ├── LiveAIWindowArt.tsx       # Live AI Window Art
+    ├── MysteryDrink.tsx          # Mystery Drink/Brew
+    ├── SmartDynamicPricing.tsx   # Smart Dynamic Pricing
+    └── SmellToImage.tsx          # Smell-to-Image Contest
+```
+
+### Services (Business Logic)
+
+```
+services/
+├── detailedMarketingPlanService.ts  # Very Detailed Marketing Plans
+├── operationalAIService.ts          # Operational AI Assistant Engine
+├── notificationService.ts            # Notification Management
+├── whatsappAlertsService.ts         # WhatsApp Alerts (8825484735)
+├── stockMonitoringService.ts        # Stock Level Monitoring
+├── schedulingService.ts              # Task Scheduling
+├── metricsService.ts                 # Revenue & Metrics Calculation
+├── specialOccasionsService.ts       # Festival & Occasion Detection
+├── aiServices.ts                     # AI Content Generation
+├── cartService.ts                    # Shopping Cart Management
+└── whatsappService.ts                # WhatsApp Integration
+```
+
+### Static Assets & Scripts
+
+```
+public/
+├── favicon.ico
+├── logo.png
+└── index.html
+
+scripts/
+├── free-port.js                    # Cross-platform port freeing
+├── free-port.bat                   # Windows batch script
+└── free-port.ps1                   # PowerShell script
+```
+
+---
+
+## 🔑 Key Features & Components Explained
+
+### 1. **BusinessAdvisor.tsx** - Main Growth Advisor Component ⭐
+
+**Purpose**: Core component that generates very detailed, step-by-step marketing execution plans
+
+**Key Features**:
+- **Very Detailed Execution Plans**: No generic phrases, only specific actions
+- **Exact Rupee Breakdown**: Every rupee accounted for in budget
+- **Worker Assignments**: Specific tasks for each worker
+- **Time-Based Execution**: Week-by-week or day-by-day plans
+- **Goal-Specific**: Completely different plans for Visibility/Sales/Expansion
+- **WhatsApp Integration**: Sends shop info to 8825484735 on form submission
+
+**Input Fields**:
+1. Business Type
+2. Monthly Budget (in rupees) - with ₹ symbol
+3. Hours Available Per Day
+4. Number of Workers
+5. Growth Goal (Visibility/Sales/Expansion)
+6. Target Time Span (days)
+7. Owner Mobile Number (for WhatsApp alerts)
+
+**Output Sections**:
+1. Business Summary
+2. Selected Growth Goal
+3. Exact Marketing Actions (WHAT, HOW, WHO, COST, WHERE, WHEN)
+4. Exact Budget Breakdown (₹-wise table)
+5. Worker-Wise Task Assignment
+6. Time-Based Execution Plan
+7. Task Classification (Automated/AI-Assisted/Human-Only)
+8. AI Contribution Summary
+9. Safety Note
+
+**Lines of Code**: ~1,841 lines
+
+---
+
+### 2. **EnhancedSchedulingCalendar.tsx** - Enhanced Calendar
+
+**Purpose**: Advanced scheduling calendar with automated reminders and alerts
+
+**Features**:
+- **Daily Task Generation**: Auto-generates tasks based on constraints
+- **Stock Alerts**: Same-day alerts when stock is about to exhaust
+- **Festival Reminders**: Reminds to advertise on website and Instagram
+- **WhatsApp Alerts**: Sends alerts to owner's mobile (8825484735 for stock)
+- **Sales Monitoring**: Alerts when sales drop >20%
+- **Refresh Button**: Manual refresh capability
+- **Auto-Update**: Refreshes every 2 minutes
+
+**Displays**:
+- Today's Tasks
+- Upcoming Tasks (next 7 days)
+- Stock Alerts
+- Special Occasions
+- Recent Notifications
+
+---
+
+### 3. **OperationalDashboard.tsx** - Operational AI Dashboard
+
+**Purpose**: Central dashboard for operational AI assistant
+
+**Features**:
+- **Today's Tasks**: Auto-generated from constraints
+- **Upcoming Tasks**: Next 7 days
+- **Urgent Alerts**: Stock, sales, and occasion alerts
+- **All Notifications**: Website and mobile notifications
+- **Settings**: Owner mobile, customer registration
+
+**Integration**:
+- Uses `operationalAIService.ts` for automation
+- Integrates with `notificationService.ts`
+- Connects to `stockMonitoringService.ts`
+- Links with `schedulingService.ts`
+
+---
+
+### 4. **MetricsDashboard.tsx** - Shared Metrics
+
+**Purpose**: Shared dashboard for owner and investor
+
+**Metrics Displayed**:
+- **Monthly Revenue**: Factual, auto-updated
+- **Orders Completed**: Total orders this month
+- **Repeated Customers**: Customers who submitted reviews
+- **Growth Trend**: Last 6 months with visualization
+- **Average Order Value**: Calculated automatically
+- **Customer Retention Rate**: Percentage
+
+**Features**:
+- Auto-updates from order data
+- Visual growth trend chart
+- No predictions, only factual data
+- Visible to both owner and investor
+
+---
+
+### 5. **Owner Dashboard** (`app/owner/page.tsx`)
+
+**Purpose**: Complete owner dashboard
+
+**Sections**:
+1. **Operational Dashboard**: Tasks, alerts, notifications
+2. **Metrics Dashboard**: Revenue, orders, customers, growth
+3. **Enhanced Scheduling Calendar**: Reminders and alerts
+
+**Features**:
+- Loads business constraints from BusinessAdvisor
+- Loads weekly plan for task generation
+- Displays all operational information
+- Real-time updates
+
+---
+
+### 6. **Customer Page** (`app/customer/page.tsx`)
+
+**Purpose**: Customer shopping interface
+
+**Features**:
+- Product catalog with stock status
+- Shopping cart functionality
+- Stock updates when items added to cart
+- Currency in rupees (₹)
+- Responsive design
+
+**Integration**:
+- Uses `cartService.ts` for cart management
+- Updates stock in real-time
+
+---
+
+### 7. **Investor Portal** (`app/investor/page.tsx`)
+
+**Purpose**: Investor analytics portal
+
+**Features**:
+- Shared metrics dashboard
+- Business statistics
+- AI-powered insights
+- Growth analysis
+
+---
+
+## 🔧 Services Explained
+
+### 1. **detailedMarketingPlanService.ts**
+
+**Purpose**: Generates VERY SPECIFIC, ACTION-ORIENTED marketing plans
+
+**Key Functions**:
+- `generateDetailedPlan()`: Creates detailed execution plan
+- **No Generic Phrases**: Only specific physical/digital actions
+- **Exact Rupee Breakdown**: Every rupee accounted for
+- **Worker Assignments**: Specific tasks per worker
+- **Time-Based Execution**: Week-by-week breakdown
+
+**Output Structure**:
+- Business Summary
+- Exact Actions (WHAT, HOW, WHO, COST, WHERE, WHEN)
+- Budget Breakdown (item, quantity, unit cost, total)
+- Worker Assignments
+- Time-Based Execution Plan
+- Task Classification
+- AI Contribution Summary
+- Safety Note
+
+---
+
+### 2. **operationalAIService.ts**
+
+**Purpose**: Operational AI automation engine
+
+**Key Functions**:
+- `generateDailyTasks()`: Auto-generates daily tasks
+- `monitorStockAndAlert()`: Monitors stock and sends alerts
+- `monitorSalesAndAlert()`: Monitors sales and alerts on drops
+- `checkFestivalsAndRemind()`: Detects festivals and adds tasks
+
+**Features**:
+- Executes actions automatically (not just suggestions)
+- Integrates with all other services
+- Pauses advertising when stock exhausted
+- Sends notifications to website and mobile
+
+---
+
+### 3. **notificationService.ts**
+
+**Purpose**: Centralized notification management
+
+**Key Functions**:
+- `sendNotification()`: Sends to website and mobile
+- `sendCustomerNotification()`: Sends to registered customers
+- `setOwnerMobileNumber()`: Sets owner's mobile
+- `registerCustomer()`: Registers customers for alerts
+
+**Features**:
+- Website notifications (always)
+- Mobile notifications (when number provided)
+- Customer notifications with preferences
+- Frequency limits (max 1 per day per customer)
+
+---
+
+### 4. **whatsappAlertsService.ts**
+
+**Purpose**: WhatsApp alert system
+
+**Key Functions**:
+- `sendWhatsAppAlert()`: Sends WhatsApp alert
+- `generateStockExhaustedAlert()`: Stock exhaustion alert
+- `generateLowStockAlert()`: Low stock alert
+- `generateSalesDropAlert()`: Sales drop alert
+- `generateSpecialOccasionAlert()`: Festival reminder
+
+**Default Number**: 8825484735 (for stock alerts and shop registration)
+
+**Features**:
+- Always sends stock alerts to 8825484735
+- Sends shop registration info to 8825484735
+- Stores alerts in localStorage
+- Prepares WhatsApp URLs
+
+---
+
+### 5. **stockMonitoringService.ts**
+
+**Purpose**: Stock level monitoring
+
+**Key Functions**:
+- `checkStockLevels()`: Checks all products
+- `saveStockAlerts()`: Saves alerts
+- `loadStockAlerts()`: Loads saved alerts
+
+**Thresholds**:
+- **Low**: < 10 units
+- **Critical**: < 5 units
+- **Exhausted**: 0 units
+
+---
+
+### 6. **schedulingService.ts**
+
+**Purpose**: Task scheduling management
+
+**Key Functions**:
+- `scheduleTasksFromWeeklyPlan()`: Schedules from weekly plan
+- `getTasksForDay()`: Gets tasks for specific day
+- `checkAndSendTaskReminders()`: Checks and sends reminders
+
+---
+
+### 7. **metricsService.ts**
+
+**Purpose**: Revenue and metrics calculation
+
+**Key Functions**:
+- `calculateMonthlyRevenue()`: Calculates current month revenue
+- `getPreviousMonthRevenue()`: Gets previous month
+- `getMetricsData()`: Gets all metrics data
+
+**Metrics**:
+- Monthly revenue
+- Orders completed
+- Repeated customers
+- Growth trend
+- Average order value
+- Customer retention rate
+
+---
+
+### 8. **specialOccasionsService.ts**
+
+**Purpose**: Festival and occasion detection
+
+**Key Functions**:
+- `checkUpcomingOccasions()`: Checks upcoming festivals
+- `generateOccasionReminder()`: Generates reminder
+
+**Features**:
+- Detects festivals and special occasions
+- Adds advertising tasks automatically
+- Sends reminders to owner
+- Sends promotional notifications to customers
+
+---
+
+### 9. **aiServices.ts**
+
+**Purpose**: AI content generation
+
+**Key Functions**:
+- `generateInstagramPost()`: Instagram post generation
+- `generateOutreachMessage()`: Outreach message generation
+- `generateReceiptPoem()`: Poetry receipt generation
+- `generateWindowArtPrompt()`: Window art prompt
+- `generateFlavorProfile()`: Flavor profiler quiz
+- And many more AI features...
+
+**Features**:
+- Highly specific to shop data
+- Varies based on owner inputs
+- Generates personalized content
+
+---
+
+### 10. **cartService.ts**
+
+**Purpose**: Shopping cart management
+
+**Key Functions**:
+- `addToCart()`: Adds product to cart
+- `removeFromCart()`: Removes from cart
+- `clearCart()`: Clears entire cart
+- `getCartTotal()`: Calculates total
+- `updateStock()`: Updates product stock
+
+**Features**:
+- Stock updates when items added
+- Stock restoration when removed
+- Cart persistence
+
+---
+
+## 🔄 Application Flow
+
+### User Journey - Business Owner
+
+1. **Home Page** (`/`)
+   - Fills Business Advisor form
+   - Enters business details, budget (₹), time, workers, goal
+   - Enters owner mobile number
+   - Clicks "Get My Growth Strategy"
+
+2. **Form Submission**
+   - WhatsApp message sent to 8825484735 with shop info
+   - Detailed marketing plan generated
+   - Weekly plan saved to localStorage
+   - Owner mobile number saved
+
+3. **Results Display**
+   - Very detailed execution plan shown
+   - Exact rupee breakdown
+   - Worker assignments
+   - Time-based execution plan
+   - Task classification
+
+4. **Owner Dashboard** (`/owner`)
+   - Views operational dashboard
+   - Sees today's tasks (auto-generated)
+   - Monitors stock alerts
+   - Views metrics dashboard
+   - Checks scheduling calendar
+
+5. **Automated Operations**
+   - Stock monitoring (every 5 minutes)
+   - Sales monitoring (continuous)
+   - Festival detection (daily)
+   - Task generation (every 2 minutes)
+   - WhatsApp alerts (when needed)
+
+### User Journey - Customer
+
+1. **Customer Page** (`/customer`)
+   - Browses products
+   - Views stock status
+   - Adds items to cart
+   - Stock updates automatically
+   - Checks out
+
+2. **Order Completion**
+   - Order saved to metrics
+   - Revenue calculated
+   - Metrics updated
+
+### User Journey - Investor
+
+1. **Investor Portal** (`/investor`)
+   - Views shared metrics dashboard
+   - Sees revenue, orders, customers
+   - Analyzes growth trends
+   - Gets AI-powered insights
+
+---
+
+## 🧠 Algorithm Logic
+
+### Detailed Marketing Plan Generation
+
+**Goal-Specific Logic**:
+
+#### If Goal = "Increase Visibility"
+- **Actions**: Pamphlet distribution, poster placement, Google Maps optimization
+- **Budget Allocation**: 30% pamphlets, 20% posters, rest for other items
+- **Tasks**: Physical distribution, directory submissions, review collection
+- **No Sales Focus**: Only awareness actions
+
+#### If Goal = "Increase Sales"
+- **Actions**: WhatsApp offers, in-store upselling, repeat customer reminders
+- **Budget Allocation**: 40% offer flyers, 20% packaging inserts
+- **Tasks**: Messaging, follow-ups, promotions
+- **No Expansion Focus**: Only conversion actions
+
+#### If Goal = "Business Expansion"
+- **Actions**: Partner identification, collaboration meetings, pilot tests
+- **Budget Allocation**: 30% meetings, 20% pilot programs
+- **Tasks**: Research, outreach, documentation
+- **No Promotional Focus**: Only scale-oriented actions
+
+### Stock Monitoring Logic
+
+```typescript
+if (stock === 0) {
+  // Exhausted - Send urgent alert to 8825484735
+  // Pause advertising tasks
+} else if (stock <= 5) {
+  // Critical - Send high priority alert
+} else if (stock <= 10) {
+  // Low - Send warning alert
 }
 ```
 
+### Sales Monitoring Logic
+
+```typescript
+if (currentRevenue < previousRevenue * 0.8) {
+  // Sales dropped >20%
+  // Send alert to owner
+  // Display warning on website
+}
+```
+
+### Task Generation Logic
+
+```typescript
+// Use constraints or defaults
+const constraints = userConstraints || {
+  timePerDay: 2,
+  monthlyBudget: 1000,
+  numberOfWorkers: 1,
+  daysAvailable: ['Monday', 'Tuesday', ...]
+};
+
+// Generate tasks for today
+const tasks = generateDailyTasks(constraints, weeklyPlan);
+```
+
 ---
 
-### 2. **`components/BusinessAdvisor.tsx`** - THE CORE COMPONENT ⭐
-**Purpose**: The main business logic component that handles all functionality
+## 📊 Data Flow
 
-**Lines of Code**: ~522 lines
+### Business Advisor Flow
 
-**Key Features**:
+```
+User Input (Form)
+    ↓
+Form State (React useState)
+    ↓
+handleSubmit()
+    ↓
+Send WhatsApp to 8825484735 (Shop Info)
+    ↓
+generateRecommendations()
+    ↓
+generateDetailedPlan()
+    ↓
+Save to localStorage
+    ↓
+Display Results
+```
 
-#### a) **State Management** (Lines 26-35)
-- Manages form inputs (businessType, budget, timePerDay, etc.)
-- Tracks recommendation results
-- Handles loading states
+### Operational AI Flow
 
+```
+System Startup
+    ↓
+Load Constraints from localStorage
+    ↓
+Generate Daily Tasks (Every 2 min)
+    ↓
+Monitor Stock (Every 5 min)
+    ↓
+Monitor Sales (Continuous)
+    ↓
+Check Festivals (Daily)
+    ↓
+Send Alerts (When Needed)
+    ↓
+Update Dashboard (Real-time)
+```
+
+### Stock Alert Flow
+
+```
+Stock Check
+    ↓
+Stock Level < Threshold?
+    ↓
+Generate Alert
+    ↓
+Send to Website Dashboard
+    ↓
+Send WhatsApp to 8825484735
+    ↓
+Send to Owner Mobile (if set)
+    ↓
+Pause Advertising (if exhausted)
+```
+
+---
+
+## 🔐 Important Business Rules
+
+1. **Stock Alerts Always Go to 8825484735**: Regardless of owner mobile
+2. **Shop Registration Always Goes to 8825484735**: When form submitted
+3. **Detailed Plans**: No generic phrases, only specific actions
+4. **Exact Budget Breakdown**: Every rupee accounted for
+5. **Goal-Specific**: Plans completely change based on goal
+6. **Worker Assignments**: Each worker gets specific tasks
+7. **Time-Based Execution**: Week-by-week breakdown
+8. **AI Role Visible**: Clearly shows AI contribution
+9. **Safety Note**: Results not guaranteed, owner makes decisions
+10. **Currency**: All amounts in Indian Rupees (₹)
+
+---
+
+## 🚀 How to Run
+
+### Development
+```bash
+npm install          # Install dependencies
+npm run dev          # Start dev server at http://localhost:3000
+```
+
+### Production
+```bash
+npm run build        # Create optimized build
+npm start            # Run production server
+```
+
+### Port Management
+```bash
+npm run free-port    # Free port 3000
+npm run start:clean  # Free port and start
+```
+
+### Testing Routes
+- Home: `http://localhost:3000/`
+- About: `http://localhost:3000/about`
+- Contact: `http://localhost:3000/contact`
+- Customer: `http://localhost:3000/customer`
+- Owner: `http://localhost:3000/owner`
+- Investor: `http://localhost:3000/investor`
+- AI Features: `http://localhost:3000/ai-features`
+- Queries: `http://localhost:3000/queries`
+
+---
+
+## 📝 Key TypeScript Interfaces
+
+### Business Inputs
 ```typescript
 interface BusinessInputs {
   businessType: string;
@@ -111,299 +714,99 @@ interface BusinessInputs {
   numberOfWorkers: string;
   growthGoal: 'visibility' | 'sales' | 'expansion';
   targetTimeSpan: string;
+  ownerMobile?: string;
 }
 ```
 
-#### b) **Recommendation Engine** (Lines 37-223)
-The `generateRecommendations()` function is the heart of the application:
+### Detailed Plan
+```typescript
+interface DetailedPlan {
+  businessSummary: string;
+  selectedGoal: string;
+  exactActions: DetailedAction[];
+  budgetBreakdown: DetailedBudgetBreakdown[];
+  workerAssignments: Array<{
+    worker: string;
+    tasks: string[];
+    timePerDay: number;
+  }>;
+  timeBasedExecution: Array<{
+    period: string;
+    actions: string[];
+    expectedResults: string;
+  }>;
+  taskClassification: {
+    automated: string[];
+    aiAssisted: string[];
+    humanOnly: string[];
+  };
+  aiContribution: string;
+  safetyNote: string;
+}
+```
 
-**Step 1: Resource Analysis** (Lines 43-49)
-- Determines resource constraints:
-  - `isLowBudget`: Budget < $100/month
-  - `isVeryLowBudget`: Budget < $50/month
-  - `hasLimitedTime`: < 2 hours/day
-  - `hasVeryLimitedTime`: < 1 hour/day
-  - `isSmallTeam`: ≤ 2 workers
-  - `hasMinimalResources`: All three constraints combined
+### Business Constraints
+```typescript
+interface BusinessConstraints {
+  timePerDay: number;
+  monthlyBudget: number;
+  numberOfWorkers: number;
+  businessType: string;
+  daysAvailable: string[];
+}
+```
 
-**Step 2: Situation Analysis** (Lines 51-74)
-- Builds a personalized analysis string explaining the business situation
-- Adapts messaging based on resource levels
-- Provides context-aware guidance
-
-**Step 3: Method Recommendations** (Lines 76-106)
-- **Always recommends** (free, high-intent):
-  - Google Business Profile setup
-  - Local directory listings
-  
-- **Conditionally recommends**:
-  - Direct customer outreach (if time > 1 hour/day)
-  - Instagram (if time ≥ 1.5 hours/day)
-  - YouTube (if time ≥ 2 hours/day AND 2+ workers)
-  - Paid ads (if budget ≥ $100)
-
-**Step 4: Task Categorization** (Lines 108-134)
-Divides tasks into three categories:
-- **Automated Tasks**: AI can fully handle
-  - Google Business Profile setup
-  - Directory submissions
-  - Automated email responses
-  - Review request automation
-
-- **AI-Assisted Tasks**: AI suggests, human approves
-  - Social media content calendar
-  - Product descriptions
-  - Communication templates
-  - SEO keywords
-
-- **Human-Only Tasks**: Requires personal touch
-  - Taking photos
-  - Customer engagement
-  - Event attendance
-  - Relationship building
-
-**Step 5: Weekly Action Plan** (Lines 136-185)
-- Creates a 5-day (Monday-Friday) task plan
-- Adjusts number of tasks based on available time:
-  - Very limited time (< 1 hour): 1 task/day
-  - Limited time (< 2 hours): 2 tasks/day
-  - Normal: 3 tasks/day
-- Removes social media tasks if not recommended
-
-**Step 6: Optional Suggestions** (Lines 187-211)
-- **Collaborations**: Always suggested
-  - Business partnerships
-  - Influencer collaborations
-  - Community associations
-  - School/center partnerships
-
-- **Fundraising**: Only if:
-  - Growth goal = "expansion" AND
-  - Budget < $500
-  - Marked as completely optional
-
-#### c) **Form UI** (Lines 255-373)
-- Collects 6 input fields:
-  1. Business Type (text)
-  2. Monthly Budget (number)
-  3. Hours Per Day (number)
-  4. Number of Workers (number)
-  5. Growth Goal (dropdown: visibility/sales/expansion)
-  6. Target Time Span (number in days)
-
-- Features:
-  - Input validation (required fields)
-  - Dark mode support
-  - Responsive design (mobile-friendly)
-  - Loading states
-
-#### d) **Results Display** (Lines 375-522)
-Displays recommendations in multiple sections:
-
-1. **Situation Analysis** - Personalized text analysis
-2. **Recommended Methods** - List of suggested strategies
-3. **Task Categories** - Three color-coded columns:
-   - Green (Automated)
-   - Yellow (AI-Assisted)
-   - Blue (Human-Only)
-4. **Weekly Action Plan** - Day-by-day task breakdown
-5. **Collaborations** - Optional partnership ideas
-6. **Fundraising** - Optional investment ideas (if applicable)
-7. **Disclaimer** - Important reminder about AI guidance
-
----
-
-### 3. **`app/layout.tsx`** - Root Layout
-**Purpose**: Wraps all pages with common structure
-
-**What it does**:
-- Sets up HTML structure (`<html>`, `<body>`)
-- Applies Inter font from Google Fonts
-- Includes Navbar and Footer on all pages
-- Sets page metadata (title, description)
-
-**Key Code**:
-```tsx
-export default function RootLayout({ children }) {
-  return (
-    <html lang="en">
-      <body>
-        <Navbar />
-        <main>{children}</main>
-        <Footer />
-      </body>
-    </html>
-  );
+### Daily Task
+```typescript
+interface DailyTask {
+  id: string;
+  task: string;
+  assignedTo: string;
+  time: string;
+  priority: 'low' | 'medium' | 'high';
+  category: 'routine' | 'advertising' | 'stock' | 'customer' | 'festival';
+  autoGenerated: boolean;
+  completed: boolean;
 }
 ```
 
 ---
 
-### 4. **`app/about/page.tsx`** - About Page
-**Purpose**: Static informational page about the application
+## 🎯 Current Features
 
-**Content**:
-- Mission statement
-- What the application does
-- Approach and philosophy
-- Target audience
-- Disclaimer about AI guidance
+### ✅ Implemented Features
 
-**Route**: `/about`
+1. **Very Detailed Marketing Plans**
+   - No generic phrases
+   - Exact rupee breakdowns
+   - Worker assignments
+   - Time-based execution
 
----
+2. **Operational AI Assistant**
+   - Auto task generation
+   - Stock monitoring
+   - Sales monitoring
+   - Festival detection
 
-### 5. **`app/contact/page.tsx`** - Contact Page
-**Purpose**: Contact form for user inquiries
+3. **WhatsApp Integration**
+   - Stock alerts to 8825484735
+   - Shop registration to 8825484735
+   - Owner mobile alerts
 
-**Features**:
-- Contact form with validation
-- Fields: Name, Email, Subject (dropdown), Message
-- Form submission handling (currently simulated)
-- Success/error message display
-- Additional contact information section
+4. **Multi-Page System**
+   - Owner dashboard
+   - Customer page
+   - Investor portal
+   - AI features showcase
 
-**Route**: `/contact`
+5. **Real-Time Updates**
+   - Auto-refreshing calendars
+   - Live stock updates
+   - Dynamic metrics
 
-**Note**: Currently uses simulated submission (setTimeout). In production, would connect to backend API or email service.
-
----
-
-### 6. **`components/Navbar.tsx`** - Navigation Bar
-**Purpose**: Site-wide navigation
-
-**Features**:
-- Logo linking to home
-- Navigation links: Home, About, Contact
-- Notification button (UI only)
-- Responsive design
-
----
-
-### 7. **`components/Footer.tsx`** - Footer
-**Purpose**: Site-wide footer with links
-
-**Sections**:
-- About links
-- Support links
-- Legal links (Privacy, Terms)
-- Social media links (placeholders)
-
----
-
-### 8. **Configuration Files**
-
-#### **`package.json`**
-Defines:
-- Project name and version
-- **Scripts**:
-  - `npm run dev` - Start development server (port 3000)
-  - `npm run build` - Create production build
-  - `npm start` - Run production server
-  - `npm run lint` - Run ESLint
-- **Dependencies**:
-  - Next.js, React, React-DOM
-- **DevDependencies**:
-  - TypeScript, Tailwind, PostCSS, Autoprefixer
-
-#### **`tsconfig.json`**
-TypeScript configuration:
-- Target: ES5 (browser compatibility)
-- Module: ESNext
-- JSX: Preserve (Next.js handles JSX)
-- Path aliases: `@/*` → `./*`
-- Strict mode enabled
-
-#### **`tailwind.config.js`**
-Tailwind CSS configuration:
-- Content paths (where to look for classes)
-- Dark mode: Class-based
-- Custom colors: Primary color palette
-- No plugins
-
-#### **`app/globals.css`**
-Global styles:
-- Tailwind directives (`@tailwind base/components/utilities`)
-- Custom CSS variables for theming
-- Dark mode color variables
-- Custom button classes
-
----
-
-## 🔄 Application Flow
-
-### User Journey
-
-1. **User visits homepage** (`/`)
-   - Sees Business Advisor form
-
-2. **User fills out form**:
-   - Enters business type
-   - Enters monthly budget
-   - Enters hours available per day
-   - Enters number of workers
-   - Selects growth goal (visibility/sales/expansion)
-   - Enters target time span
-
-3. **User clicks "Get My Growth Strategy"**
-   - Form validates inputs
-   - Shows loading state
-   - `generateRecommendations()` function runs
-   - Analyzes constraints
-   - Generates personalized recommendations
-   - Displays results below form
-   - Smooth scrolls to results
-
-4. **User views results**:
-   - Reads situation analysis
-   - Reviews recommended methods
-   - Checks task categories
-   - Views weekly action plan
-   - Sees optional suggestions
-   - Reads disclaimer
-
-5. **Optional**: User navigates to:
-   - `/about` - Learn more about the app
-   - `/contact` - Submit inquiries
-
----
-
-## 🧠 Algorithm Logic - How Recommendations Work
-
-### Constraint Detection
-
-```javascript
-const isLowBudget = budget < 100;
-const hasLimitedTime = timePerDay < 2;
-const isSmallTeam = workers <= 2;
-const hasMinimalResources = isLowBudget && hasLimitedTime && isSmallTeam;
-```
-
-### Method Selection Logic
-
-**Tier 1: Always Recommended** (Free, High-Intent)
-- Google Business Profile
-- Local directories
-
-**Tier 2: Conditional** (Based on Time)
-- Direct outreach: `timePerDay >= 1 hour`
-- Instagram: `timePerDay >= 1.5 hours`
-- YouTube: `timePerDay >= 2 hours AND workers >= 2`
-
-**Tier 3: Budget-Dependent**
-- Paid ads: `budget >= $100` AND (visibility OR sales goal)
-
-### Task Adjustment Logic
-
-```javascript
-if (hasVeryLimitedTime) {
-  tasksPerDay = 1;
-} else if (hasLimitedTime) {
-  tasksPerDay = 2;
-} else {
-  tasksPerDay = 3;
-}
-```
+6. **Currency Support**
+   - All amounts in ₹ (Indian Rupees)
+   - Proper formatting (en-IN locale)
 
 ---
 
@@ -414,126 +817,34 @@ if (hasVeryLimitedTime) {
 - **Dark Mode**: Fully supported throughout
 - **Responsive**: Mobile-first design
 - **Accessibility**: Semantic HTML, proper labels
+- **Currency**: ₹ symbol with Indian number formatting
 
 ### Visual Hierarchy
 - **Form**: Clean, organized, grouped logically
-- **Results**: Color-coded sections for easy scanning
+- **Results**: Color-coded sections
   - Green = Automated (easy)
   - Yellow = AI-Assisted (moderate)
   - Blue = Human-Only (important)
 - **Typography**: Clear headings, readable body text
-
----
-
-## 📊 Data Flow
-
-```
-User Input
-    ↓
-Form State (React useState)
-    ↓
-handleSubmit() → generateRecommendations()
-    ↓
-Business Logic Processing
-    ↓
-Recommendation Object Created
-    ↓
-State Update → UI Re-render
-    ↓
-Results Displayed to User
-```
-
----
-
-## 🔐 Important Business Rules
-
-1. **No Overpromising**: Recommendations are realistic
-2. **No Forced Paid Ads**: Only suggested if budget allows
-3. **Optional Fundraising**: Only for expansion goals with low budget
-4. **Clear Disclaimers**: AI provides guidance, owner makes decisions
-5. **Resource-Aware**: Methods matched to available resources
-
----
-
-## 🚀 How to Run
-
-### Development
-```bash
-npm install          # Install dependencies (if not already done)
-npm run dev          # Start dev server at http://localhost:3000
-```
-
-### Production
-```bash
-npm run build        # Create optimized build
-npm start            # Run production server
-```
-
-### Testing Routes
-- Home: `http://localhost:3000/`
-- About: `http://localhost:3000/about`
-- Contact: `http://localhost:3000/contact`
+- **Tables**: Budget breakdown tables with proper formatting
 
 ---
 
 ## 🔧 Dependencies Breakdown
 
 ### Production Dependencies
-- **next**: React framework (routing, SSR, optimization)
-- **react**: UI library
-- **react-dom**: React DOM renderer
+- **next**: ^14.2.30 - React framework
+- **react**: ^18.3.1 - UI library
+- **react-dom**: ^18.3.1 - React DOM renderer
 
 ### Development Dependencies
-- **typescript**: Type checking
-- **tailwindcss**: CSS framework
-- **postcss**: CSS processing
-- **autoprefixer**: CSS vendor prefixes
-- **@types/\***: TypeScript type definitions
-
----
-
-## 📝 Key TypeScript Interfaces
-
-```typescript
-interface BusinessInputs {
-  businessType: string;
-  budget: string;
-  timePerDay: string;
-  numberOfWorkers: string;
-  growthGoal: 'visibility' | 'sales' | 'expansion';
-  targetTimeSpan: string;
-}
-
-interface Recommendation {
-  analysis: string;
-  methods: string[];
-  automatedTasks: string[];
-  aiAssistedTasks: string[];
-  humanOnlyTasks: string[];
-  weeklyPlan: { day: string; tasks: string[] }[];
-  collaborations?: string[];
-  fundraising?: string[];
-}
-```
-
----
-
-## 🎯 Current Limitations & Future Enhancements
-
-### Current State
-- Form submission is client-side only (no backend)
-- Recommendations are generated algorithmically (not using AI API)
-- Contact form uses simulated submission
-- No user authentication or data persistence
-
-### Potential Enhancements
-- Backend API for data storage
-- Real AI integration (OpenAI, etc.)
-- User accounts to save strategies
-- Email integration for contact form
-- Analytics tracking
-- More granular recommendations
-- Industry-specific templates
+- **typescript**: ^5.3.3 - Type checking
+- **tailwindcss**: ^3.4.1 - CSS framework
+- **postcss**: ^8.4.35 - CSS processing
+- **autoprefixer**: ^10.4.17 - CSS vendor prefixes
+- **@types/node**: ^20.11.0 - Node.js types
+- **@types/react**: ^18.2.0 - React types
+- **@types/react-dom**: ^18.2.0 - React DOM types
 
 ---
 
@@ -546,13 +857,18 @@ interface Recommendation {
 - Layout components wrap routes
 
 ### React Hooks Used
-- `useState`: Managing form state and results
-- `useEffect`: Not used in this project (could be for API calls)
+- `useState`: Managing form state, results, and UI state
+- `useEffect`: Loading data, setting up intervals, side effects
 
-### Tailwind CSS
-- Utility-first CSS: Classes like `bg-blue-500`, `px-4`, `rounded-lg`
-- Dark mode: `dark:bg-gray-800` classes
-- Responsive: `md:grid-cols-2` (medium screens and up)
+### Local Storage
+- Used for data persistence (business inputs, weekly plans, notifications)
+- All localStorage calls wrapped in `typeof window !== 'undefined'` checks
+- Prevents SSR errors
+
+### WhatsApp Integration
+- Uses WhatsApp Web URL format: `https://wa.me/{number}?text={message}`
+- Stores alerts in localStorage for tracking
+- Ready for WhatsApp Business API integration
 
 ---
 
@@ -560,48 +876,86 @@ interface Recommendation {
 
 ### Common Issues
 
-1. **Port 3000 in use**: Next.js will auto-use next available port
-2. **TypeScript errors**: Run `npm run build` to check types
-3. **Styling not working**: Ensure Tailwind config includes correct paths
-4. **404 on routes**: Check that `app/[route]/page.tsx` files exist
+1. **Port 3000 in use**
+   - Solution: Run `npm run free-port` or `npm run start:clean`
+
+2. **TypeScript errors**
+   - Solution: Run `npm run build` to check types
+
+3. **SSR localStorage errors**
+   - Solution: All localStorage calls are wrapped in `typeof window !== 'undefined'` checks
+
+4. **Stock not updating**
+   - Solution: Ensure `cartService.ts` is properly integrated
+
+5. **WhatsApp alerts not sending**
+   - Solution: Check that number 8825484735 is correct, alerts are stored in localStorage
 
 ---
 
-## 📋 File Checklist (All Created/Modified Files)
+## 📋 File Checklist
 
-### Created Files:
-✅ `components/BusinessAdvisor.tsx` - Core component (522 lines)
-✅ `app/page.tsx` - Home page
-✅ `app/about/page.tsx` - About page
-✅ `app/contact/page.tsx` - Contact page
-✅ `app/layout.tsx` - Updated metadata
-
-### Existing Files (Not Modified):
-- `components/Navbar.tsx` - Already existed
-- `components/Footer.tsx` - Already existed
-- `components/Logo.tsx` - Already existed
-- Configuration files - Already existed
-
----
-
-## 💡 Usage Example
-
-**Input Example**:
-- Business Type: "Coffee Shop"
-- Budget: $75/month
-- Time: 1.5 hours/day
-- Workers: 2
-- Goal: Increase Sales
-- Time Span: 30 days
-
-**Expected Output**:
-- Analysis: "You run a Coffee Shop with limited resources..."
-- Methods: Google Business Profile, Instagram (3-5 posts/week), Local directories, etc.
-- Tasks divided into 3 categories
-- 5-day weekly plan with 2-3 tasks per day
-- Collaboration suggestions
-- No fundraising (goal is sales, not expansion)
+### Core Files Created/Modified:
+✅ `components/BusinessAdvisor.tsx` - Main component (~1,841 lines)
+✅ `components/EnhancedSchedulingCalendar.tsx` - Enhanced calendar
+✅ `components/OperationalDashboard.tsx` - Operational dashboard
+✅ `components/MetricsDashboard.tsx` - Metrics dashboard
+✅ `app/owner/page.tsx` - Owner dashboard
+✅ `app/customer/page.tsx` - Customer page
+✅ `app/investor/page.tsx` - Investor portal
+✅ `services/detailedMarketingPlanService.ts` - Detailed plans
+✅ `services/operationalAIService.ts` - Operational AI
+✅ `services/notificationService.ts` - Notifications
+✅ `services/whatsappAlertsService.ts` - WhatsApp alerts
+✅ `services/stockMonitoringService.ts` - Stock monitoring
+✅ And many more...
 
 ---
 
-This documentation provides a complete overview of the Business Growth Assistant application. Use this as a reference when discussing the codebase with other AI assistants or developers.
+## 💡 Usage Examples
+
+### Example 1: Business Advisor Input
+- **Business Type**: "Coffee Shop"
+- **Monthly Budget**: ₹5,000
+- **Time Available**: 3 hours/day
+- **Workers**: 2
+- **Growth Goal**: "Increase Sales"
+- **Target Time**: 30 days
+- **Owner Mobile**: +91 9876543210
+
+**Output**: Very detailed plan with exact actions, ₹5,000 breakdown, worker assignments, and 30-day execution plan
+
+### Example 2: Stock Alert
+- **Product**: "Premium Coffee Blend"
+- **Stock**: 3 units (critical)
+- **Action**: Alert sent to 8825484735 and owner mobile
+
+### Example 3: Sales Drop
+- **Current Revenue**: ₹40,000
+- **Previous Revenue**: ₹60,000
+- **Drop**: 33% (>20% threshold)
+- **Action**: Alert sent to owner, warning displayed on dashboard
+
+---
+
+## 🎯 Future Enhancements
+
+### Potential Additions
+- Backend API for data storage
+- Real WhatsApp Business API integration
+- User authentication
+- Email integration
+- Analytics tracking
+- More granular recommendations
+- Industry-specific templates
+- Multi-language support
+
+---
+
+This documentation provides a complete overview of the AI-Powered Business Management System. Use this as a reference when working with the codebase.
+
+**Last Updated**: Current project state
+**Total Source Files**: ~63 files
+**Main Entry Point**: `app/page.tsx`
+**Core Component**: `components/BusinessAdvisor.tsx`
+**Key Service**: `services/detailedMarketingPlanService.ts`

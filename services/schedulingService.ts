@@ -22,12 +22,17 @@ export interface Reminder {
 
 // Store scheduled tasks in localStorage
 export function saveScheduledTasks(tasks: ScheduledTask[]) {
-  localStorage.setItem('scheduledTasks', JSON.stringify(tasks));
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('scheduledTasks', JSON.stringify(tasks));
+  }
 }
 
 export function loadScheduledTasks(): ScheduledTask[] {
-  const saved = localStorage.getItem('scheduledTasks');
-  return saved ? JSON.parse(saved) : [];
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('scheduledTasks');
+    return saved ? JSON.parse(saved) : [];
+  }
+  return [];
 }
 
 // Schedule tasks from weekly plan
@@ -129,7 +134,7 @@ export function getUpcomingTasks(): ScheduledTask[] {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const todayIndex = today.getDay();
   
-  const upcomingDays = [];
+  const upcomingDays: string[] = [];
   for (let i = 0; i < 7; i++) {
     const dayIndex = (todayIndex + i) % 7;
     upcomingDays.push(days[dayIndex]);

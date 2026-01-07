@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:clean": "node scripts/free-port.js && npm start",
+    "free-port": "node scripts/free-port.js",
     "lint": "next lint"
   },
   "dependencies": {

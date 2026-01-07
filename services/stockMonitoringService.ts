@@ -91,12 +91,17 @@ export function checkStockLevels(products: Array<{ id: string; name: string; sto
 
 // Store stock alerts
 export function saveStockAlerts(alerts: StockAlert[]) {
-  localStorage.setItem('stockAlerts', JSON.stringify(alerts));
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('stockAlerts', JSON.stringify(alerts));
+  }
 }
 
 export function loadStockAlerts(): StockAlert[] {
-  const saved = localStorage.getItem('stockAlerts');
-  return saved ? JSON.parse(saved) : [];
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('stockAlerts');
+    return saved ? JSON.parse(saved) : [];
+  }
+  return [];
 }
 
 // Mark alert as sent

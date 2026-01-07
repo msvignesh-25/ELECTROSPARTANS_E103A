@@ -93,12 +93,17 @@ export function markOccasionReminderSent(occasionId: string, platform: 'webpage'
 
 // Store occasions
 export function saveOccasions(occasions: SpecialOccasion[]) {
-  localStorage.setItem('specialOccasions', JSON.stringify(occasions));
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('specialOccasions', JSON.stringify(occasions));
+  }
 }
 
 export function loadOccasions(): SpecialOccasion[] {
-  const saved = localStorage.getItem('specialOccasions');
-  return saved ? JSON.parse(saved) : [];
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('specialOccasions');
+    return saved ? JSON.parse(saved) : [];
+  }
+  return [];
 }
 
 // Add custom occasion

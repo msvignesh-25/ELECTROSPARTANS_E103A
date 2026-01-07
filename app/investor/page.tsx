@@ -150,7 +150,7 @@ export default function InvestorPage() {
           </p>
         </div>
 
-        {/* Metrics Dashboard */}
+        {/* Shared Metrics Dashboard (Owner & Investor View) */}
         <div className="mb-8">
           <MetricsDashboard />
         </div>

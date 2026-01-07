@@ -5,14 +5,16 @@ export default function ThemeToggle() {
 
   useEffect(() => {
     // Check if user has a theme preference in localStorage
-    const isDark = localStorage.getItem('theme') === 'dark';
-    setDarkMode(isDark);
-    
-    // Apply the theme
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    if (typeof window !== 'undefined') {
+      const isDark = localStorage.getItem('theme') === 'dark';
+      setDarkMode(isDark);
+      
+      // Apply the theme
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
   }, []);
 
@@ -21,7 +23,9 @@ export default function ThemeToggle() {
     setDarkMode(newDarkMode);
     
     // Update localStorage and apply theme
-    localStorage.setItem('theme', newDarkMode ? 'dark' : 'light');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', newDarkMode ? 'dark' : 'light');
+    }
     if (newDarkMode) {
       document.documentElement.classList.add('dark');
     } else {

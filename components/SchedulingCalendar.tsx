@@ -61,10 +61,7 @@ export default function SchedulingCalendar({
     setTasks(dayTasks);
   }, [selectedDay]);
 
-  useEffect(() => {
-    // Check reminders and alerts periodically
-    const checkReminders = () => {
-
+  const checkReminders = () => {
     // Check for reminders
     const taskReminders = checkAndSendTaskReminders();
     if (taskReminders.length > 0) {
