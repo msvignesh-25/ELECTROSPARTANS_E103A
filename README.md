@@ -1,47 +1,87 @@
-# AI Advertising & Fundraising Assistant for Small Businesses
+# AI Advertising and Fundraising Assistant for Small Businesses
 
-Small businesses often face growth challenges not due to a lack of ideas, but because most available guidance assumes ideal conditions such as abundant time, budget, and manpower. In practice, vendors must make decisions under tight constraints, where unrealistic recommendations can lead to wasted effort and missed opportunities.
+## Overview
 
-This project presents a constraint-aware AI decision support system designed to assist small business owners in planning advertising, promotional, and expansion activities in a realistic and resource-sensitive manner. Instead of focusing on full automation or direct execution of marketing actions, the system emphasizes guided decision-making by analyzing key business constraints such as business type, available budget, time availability, and growth objectives.
+Small businesses often face challenges in planning advertising, growth, and expansion not because of a lack of ideas, but due to limited time, budget, and human resources. Many existing AI-driven tools emphasize automation or optimization while assuming ideal operating conditions, which makes their recommendations difficult to execute in real-world environments.
 
-Based on these inputs, the system provides structured recommendations that clearly distinguish between:
+This project presents a **constraint-aware AI decision support system** designed to help small business owners make realistic and informed decisions regarding advertising, promotion, and expansion strategies. Rather than automating execution or integrating directly with external platforms, the system focuses on **guided decision-making**, transparency, and feasibility.
 
-1. activities that can be automated,
-2. activities that can be supported by AI, and
-3. activities that require direct human involvement.
+---
 
-In addition to growth planning, the system includes a fundraising and collaboration component that enables businesses to express resource needs—such as capital, skills, or partnerships—and explore potential support opportunities without handling real financial transactions.
+## Problem Context
 
-The overall goal of the project is to demonstrate how AI can be used responsibly to support small businesses through explainable, constraint-aware guidance, rather than generic optimization or over-automation.
+Most growth-oriented tools implicitly assume:
 
-## Design Philosophy
+- sufficient financial resources  
+- availability of dedicated personnel  
+- flexibility to experiment with multiple strategies  
 
-Decision support over decision replacement
+In practice, small businesses operate under strict constraints, where unrealistic recommendations can lead to wasted effort, financial risk, or missed opportunities. This system is designed to address this gap by treating constraints as **primary inputs**, not secondary considerations.
 
-Explicit modeling of real-world constraints
+---
 
-Transparency in recommendations
+## System Objectives
 
-Human-in-the-loop approach
+The system is designed to achieve the following objectives:
 
-Practical guidance rather than theoretical optimization
+1. Support small businesses in planning advertising and growth activities within realistic constraints.
+2. Provide explainable recommendations that clarify why certain actions are feasible or infeasible.
+3. Distinguish clearly between:
+   - tasks that can be automated,
+   - tasks that can be AI-assisted,
+   - tasks that require direct human involvement.
+4. Reduce dependency on technical or marketing expertise for early-stage decision-making.
+
+---
+
+## System Scope
+
+The system operates as a **decision support layer** rather than an execution engine. Based on user-provided inputs such as business type, available budget, time availability, and growth goals, the system generates structured guidance to help vendors prioritize actions.
+
+In addition, the system includes a **fundraising and collaboration component** that allows businesses to:
+
+- express resource needs such as capital, skills, or partnerships,
+- explore potential collaboration opportunities,
+- signal interest or support without handling real financial transactions.
+
+---
+
+## Design Principles
+
+The system is guided by the following principles:
+
+- Decision support over decision replacement  
+- Explicit modeling of real-world constraints  
+- Transparency and explainability in recommendations  
+- Human-in-the-loop interaction  
+- Practical feasibility over theoretical optimization  
+
+---
 
 ## Scope and Limitations
 
-This system does not automate advertising campaigns
+To maintain responsible and realistic system behavior, the following are intentionally out of scope:
 
-It does not integrate directly with ad platforms or payment gateways
+- Automated execution of advertising campaigns  
+- Direct integration with advertising platforms or payment gateways  
+- Guarantees related to revenue growth or business success  
+- Replacement of human judgment or business decision-making  
 
-It does not guarantee business growth or revenue outcomes
+All outputs generated by the system are advisory and intended to support informed decision-making.
 
-Recommendations are advisory and intended to support, not replace, human judgment
+---
 
-## Intended Use
+## Potential Applications
 
-Concept demonstration for intelligent decision support systems
+This system can serve as:
 
-Exploration of responsible AI in small business contexts
+- A planning and guidance tool for small and early-stage businesses  
+- A foundation for building constraint-aware AI assistants  
+- A framework for responsible AI-driven decision support  
+- A base for future extensions involving integrations, analytics, or platform-specific execution  
 
-Academic review and evaluation
+---
 
-Foundation for future extensions and research
+## Conclusion
+
+This project demonstrates how AI can be applied as a **supportive and responsible decision-making aid** for small businesses by prioritizing realistic constraints, explainable guidance, and human oversight. By focusing on feasibility rather than over-automation, the system aims to align AI assistance with real-world business conditions.
