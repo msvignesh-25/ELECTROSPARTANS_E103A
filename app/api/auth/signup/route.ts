@@ -4,7 +4,7 @@ import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {
-    const { email, password, role, name, businessType, id } = await req.json();
+    const { email, password, role, name, businessType, id, phoneNumber } = await req.json();
 
     if (!email || !password || !role) {
       return NextResponse.json(
@@ -38,6 +38,7 @@ export async function POST(req: Request) {
       role: role.toLowerCase(),
       name: name || "",
       id: id || null,
+      phoneNumber: phoneNumber || null,
       businessType: businessType || null,
       createdAt: new Date(),
       cart: role === "customer" ? [] : undefined,

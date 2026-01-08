@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   MetricsData,
   getMetricsData,
@@ -8,15 +8,140 @@ import {
 } from '@/services/metricsService';
 import RevenueGraph from '@/components/RevenueGraph';
 
-export default function MetricsDashboard() {
+interface MetricsDashboardProps {
+  businessType?: string;
+}
+
+export default function MetricsDashboard({ businessType = '' }: MetricsDashboardProps) {
   const [metrics, setMetrics] = useState<MetricsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [highlightChange, setHighlightChange] = useState(false);
+
+  // Simulate transaction data based on business type
+  const generateTransactionData = (type: string) => {
+    // Base multipliers for different business types
+    const multipliers: Record<string, { revenue: number; orders: number; customers: number }> = {
+      'Food': { revenue: 1.2, orders: 1.5, customers: 1.3 },
+      'Retail': { revenue: 1.0, orders: 1.0, customers: 1.0 },
+      'Service': { revenue: 1.5, orders: 0.8, customers: 0.9 },
+      'Electronics': { revenue: 1.8, orders: 0.6, customers: 0.7 },
+      'Bakery': { revenue: 0.9, orders: 1.8, customers: 1.6 },
+      'Repair Shop': { revenue: 1.3, orders: 0.7, customers: 0.8 },
+      'Cool Drinks': { revenue: 0.8, orders: 2.0, customers: 1.9 },
+    };
+
+    const multiplier = multipliers[type] || { revenue: 1.0, orders: 1.0, customers: 1.0 };
+    
+    // Generate simulated transactions
+    const baseTransactions = 150;
+    const baseRevenue = 50000;
+    const baseCustomers = 80;
+    
+    const transactions: Array<{
+      customerId: string;
+      orderId: string;
+      amount: number;
+      date: Date;
+    }> = [];
+    
+    const customerIds = new Set<string>();
+    const customerOrderCounts: Record<string, number> = {};
+    
+    const numTransactions = Math.floor(baseTransactions * multiplier.orders);
+    const numCustomers = Math.floor(baseCustomers * multiplier.customers);
+    
+    // Generate customer IDs
+    for (let i = 0; i < numCustomers; i++) {
+      customerIds.add(`customer_${i + 1}`);
+      customerOrderCounts[`customer_${i + 1}`] = 0;
+    }
+    
+    // Generate transactions
+    for (let i = 0; i < numTransactions; i++) {
+      const customerId = Array.from(customerIds)[Math.floor(Math.random() * customerIds.size)];
+      const orderAmount = (baseRevenue / baseTransactions) * multiplier.revenue * (0.7 + Math.random() * 0.6);
+      
+      transactions.push({
+        customerId,
+        orderId: `order_${i + 1}`,
+        amount: orderAmount,
+        date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000), // Last 30 days
+      });
+      
+      customerOrderCounts[customerId] = (customerOrderCounts[customerId] || 0) + 1;
+    }
+    
+    return { transactions, customerOrderCounts, customerIds };
+  };
+
+  // Calculate metrics based on business type
+  const calculatedMetrics = useMemo(() => {
+    if (!businessType) {
+      const data = getMetricsData();
+      return data;
+    }
+
+    const { transactions, customerOrderCounts, customerIds } = generateTransactionData(businessType);
+    
+    // Calculate Orders Completed
+    const ordersCompleted = transactions.length;
+    
+    // Calculate Total Customers
+    const totalCustomers = customerIds.size;
+    
+    // Calculate Repeat Customers (customers with more than 1 order)
+    const repeatCustomers = Object.values(customerOrderCounts).filter(count => count > 1).length;
+    
+    // Calculate Monthly Revenue (sum of all transaction amounts)
+    const monthlyRevenue = transactions.reduce((sum, t) => sum + t.amount, 0);
+    
+    // Calculate Average Order Value
+    const averageOrderValue = ordersCompleted > 0 ? monthlyRevenue / ordersCompleted : 0;
+    
+    // Calculate Customer Retention Rate
+    const customerRetentionRate = totalCustomers > 0 ? (repeatCustomers / totalCustomers) * 100 : 0;
+    
+    // Generate growth trend (last 6 months)
+    const growthTrend: MonthlyMetrics[] = [];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    let previousRevenue = monthlyRevenue * 0.7; // Start lower
+    
+    for (let i = 0; i < 6; i++) {
+      const currentRevenue = previousRevenue * (1 + (Math.random() * 0.1 - 0.05)); // ±5% variation
+      const growthRate = ((currentRevenue - previousRevenue) / previousRevenue) * 100;
+      
+      growthTrend.push({
+        month: monthNames[i],
+        revenue: currentRevenue,
+        ordersCompleted: Math.floor(ordersCompleted * (0.8 + Math.random() * 0.4)),
+        repeatedCustomers: Math.floor(repeatCustomers * (0.8 + Math.random() * 0.4)),
+        growthRate: growthRate,
+      });
+      
+      previousRevenue = currentRevenue;
+    }
+    
+    return {
+      monthlyRevenue,
+      ordersCompleted,
+      repeatedCustomers: repeatCustomers,
+      totalCustomers,
+      averageOrderValue,
+      customerRetentionRate,
+      growthTrend,
+    };
+  }, [businessType]);
 
   useEffect(() => {
-    const data = getMetricsData();
-    setMetrics(data);
+    setMetrics(calculatedMetrics);
     setLoading(false);
-  }, []);
+    
+    // Highlight change when business type updates
+    if (businessType) {
+      setHighlightChange(true);
+      setTimeout(() => setHighlightChange(false), 1000);
+    }
+  }, [calculatedMetrics, businessType]);
 
   if (loading || !metrics) {
     return (
@@ -46,7 +171,9 @@ export default function MetricsDashboard() {
 
         {/* Key Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+          <div className={`bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800 transition-all duration-500 ${
+            highlightChange ? 'ring-4 ring-blue-400 scale-105' : ''
+          }`}>
             <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">
               Monthly Revenue
             </p>
@@ -61,7 +188,9 @@ export default function MetricsDashboard() {
             )}
           </div>
 
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+          <div className={`bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800 transition-all duration-500 ${
+            highlightChange ? 'ring-4 ring-green-400 scale-105' : ''
+          }`}>
             <p className="text-sm text-green-600 dark:text-green-400 font-medium mb-1">
               Orders Completed
             </p>
@@ -73,9 +202,11 @@ export default function MetricsDashboard() {
             </p>
           </div>
 
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+          <div className={`bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800 transition-all duration-500 ${
+            highlightChange ? 'ring-4 ring-purple-400 scale-105' : ''
+          }`}>
             <p className="text-sm text-purple-600 dark:text-purple-400 font-medium mb-1">
-              Repeated Customers
+              Repeat Customers
             </p>
             <p className="text-2xl font-bold text-purple-900 dark:text-purple-300">
               {metrics.repeatedCustomers}
@@ -85,7 +216,9 @@ export default function MetricsDashboard() {
             </p>
           </div>
 
-          <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+          <div className={`bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800 transition-all duration-500 ${
+            highlightChange ? 'ring-4 ring-orange-400 scale-105' : ''
+          }`}>
             <p className="text-sm text-orange-600 dark:text-orange-400 font-medium mb-1">
               Total Customers
             </p>
@@ -166,6 +299,46 @@ export default function MetricsDashboard() {
             ))}
           </div>
         </div>
+
+        {/* Algorithm Transparency Section */}
+        {businessType && (
+          <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
+            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-4">
+              How these metrics are calculated
+            </h3>
+            <div className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
+              <div>
+                <p className="font-medium mb-1">Orders Completed:</p>
+                <p className="text-blue-700 dark:text-blue-300">
+                  Total number of transactions recorded for {businessType} business type. Each transaction represents a completed order from a customer.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium mb-1">Total Customers:</p>
+                <p className="text-blue-700 dark:text-blue-300">
+                  Unique customer count derived from all transactions. Each unique customer ID in the transaction records represents one customer.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium mb-1">Repeat Customers:</p>
+                <p className="text-blue-700 dark:text-blue-300">
+                  Number of customers who have made more than one transaction. This is calculated by counting customers with multiple orders in the transaction history.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium mb-1">Monthly Revenue:</p>
+                <p className="text-blue-700 dark:text-blue-300">
+                  Sum of all revenue entries (transaction amounts) associated with {businessType} business type. This represents the total income from all completed orders in the current month.
+                </p>
+              </div>
+              <div className="mt-4 pt-4 border-t border-blue-300 dark:border-blue-700">
+                <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+                  Note: Calculations are based on simulated transaction data for {businessType} businesses. Metrics update automatically when business type selection changes.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

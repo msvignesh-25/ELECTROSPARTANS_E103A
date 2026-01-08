@@ -18,6 +18,7 @@ export default function SignupPage() {
     name: "",
     email: "",
     id: "",
+    phoneNumber: "",
     password: "",
     confirmPassword: "",
     businessType: "",
@@ -62,6 +63,7 @@ export default function SignupPage() {
           role: role,
           name: formData.name,
           id: role === "customer" ? formData.id : null,
+          phoneNumber: role === "customer" ? formData.phoneNumber : null,
           businessType: role === "vendor" ? formData.businessType : null,
         }),
       });
@@ -169,21 +171,41 @@ export default function SignupPage() {
             </div>
 
             {role === "customer" && (
-              <div>
-                <label htmlFor="id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  ID
-                </label>
-                <input
-                  id="id"
-                  name="id"
-                  type="text"
-                  required
-                  value={formData.id}
-                  onChange={handleChange}
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Enter your ID"
-                />
-              </div>
+              <>
+                <div>
+                  <label htmlFor="id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    ID
+                  </label>
+                  <input
+                    id="id"
+                    name="id"
+                    type="text"
+                    required
+                    value={formData.id}
+                    onChange={handleChange}
+                    className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="Enter your ID"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Phone Number
+                  </label>
+                  <input
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    type="tel"
+                    required
+                    value={formData.phoneNumber}
+                    onChange={handleChange}
+                    className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="Enter your phone number (e.g., +1234567890)"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    We'll send order confirmations via WhatsApp to this number
+                  </p>
+                </div>
+              </>
             )}
 
             <div>
