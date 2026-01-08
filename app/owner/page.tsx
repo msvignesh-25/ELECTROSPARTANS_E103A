@@ -5,6 +5,9 @@ import MetricsDashboard from '@/components/MetricsDashboard';
 import SchedulingCalendar from '@/components/SchedulingCalendar';
 import EnhancedSchedulingCalendar from '@/components/EnhancedSchedulingCalendar';
 import OperationalDashboard from '@/components/OperationalDashboard';
+import RevenueInput from '@/components/RevenueInput';
+import AIActionLog from '@/components/AIActionLog';
+import StockSalesAlertsBanner from '@/components/StockSalesAlertsBanner';
 import type { BusinessConstraints } from '@/services/operationalAIService';
 
 export default function OwnerPage() {
@@ -61,6 +64,12 @@ export default function OwnerPage() {
         </div>
 
         <div className="space-y-6">
+          {/* Stock & Sales Alerts Banner */}
+          <StockSalesAlertsBanner products={products} />
+
+          {/* Revenue Input Section */}
+          <RevenueInput />
+
           {/* Operational Dashboard (Today's Tasks, Alerts, Notifications) */}
           <OperationalDashboard 
             products={products}
@@ -68,18 +77,18 @@ export default function OwnerPage() {
             weeklyPlan={weeklyPlan}
           />
 
-          {/* Metrics Dashboard */}
-          <MetricsDashboard />
-
-          {/* Enhanced Scheduling Calendar with Reminders */}
+          {/* AI Task Scheduler (Enhanced Scheduling Calendar) */}
           <EnhancedSchedulingCalendar 
             products={products}
             constraints={constraints || undefined}
             weeklyPlan={weeklyPlan}
           />
 
-          {/* Legacy Scheduling Calendar */}
-          {/* <SchedulingCalendar products={products} /> */}
+          {/* Metrics Dashboard with Revenue Graph */}
+          <MetricsDashboard />
+
+          {/* AI Action & Alert Log */}
+          <AIActionLog />
         </div>
       </div>
     </div>

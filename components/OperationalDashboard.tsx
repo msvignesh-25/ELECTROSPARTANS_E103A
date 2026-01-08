@@ -44,6 +44,13 @@ export default function OperationalDashboard({
   const [newCustomerName, setNewCustomerName] = useState<string>('');
   const [metrics, setMetrics] = useState<any>(null);
   const [advertisingPaused, setAdvertisingPaused] = useState(false);
+  const [customerMoodRecommendations, setCustomerMoodRecommendations] = useState<Array<{
+    id: string;
+    timestamp: string;
+    message: string;
+    items: Array<{ item: string; reason: string; customization: string }>;
+    customerProfile: string;
+  }>>([]);
 
   // Load initial data
   useEffect(() => {
@@ -73,6 +80,19 @@ export default function OperationalDashboard({
 
     // Load metrics
     setMetrics(getMetricsData());
+
+    // Load customer mood recommendations
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('customerMoodRecommendations');
+      if (saved) {
+        try {
+          const recommendations = JSON.parse(saved);
+          setCustomerMoodRecommendations(recommendations.slice(-10)); // Last 10
+        } catch (error) {
+          console.error('Error loading customer mood recommendations:', error);
+        }
+      }
+    }
 
     // Generate daily tasks
     if (constraints) {
@@ -293,6 +313,52 @@ export default function OperationalDashboard({
                 {metrics.growthTrend.length > 0 ? metrics.growthTrend[metrics.growthTrend.length - 1].growthRate.toFixed(1) : '0'}%
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Mood Recommendations */}
+      {customerMoodRecommendations.length > 0 && (
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg shadow-lg p-6 border border-purple-200 dark:border-purple-800">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            💭 Customer Mood Recommendations
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Customers have answered mood questions. Here are personalized item suggestions for them:
+          </p>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {customerMoodRecommendations.map((rec) => (
+              <div
+                key={rec.id}
+                className="bg-white dark:bg-gray-700 rounded-lg p-4 border border-purple-200 dark:border-purple-800"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <p className="font-semibold text-gray-900 dark:text-white mb-1">
+                      {rec.customerProfile || 'Customer'}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(rec.timestamp).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {rec.items.map((item, idx) => (
+                    <div key={idx} className="bg-purple-50 dark:bg-purple-900/20 rounded p-3 border border-purple-200 dark:border-purple-800">
+                      <p className="font-semibold text-purple-900 dark:text-purple-300 mb-1">
+                        {item.item}
+                      </p>
+                      <p className="text-xs text-gray-700 dark:text-gray-300 mb-1">
+                        <strong>Why:</strong> {item.reason}
+                      </p>
+                      <p className="text-xs text-purple-700 dark:text-purple-400">
+                        <strong>Customization:</strong> {item.customization}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

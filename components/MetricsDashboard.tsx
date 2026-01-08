@@ -6,6 +6,7 @@ import {
   getMetricsData,
   MonthlyMetrics,
 } from '@/services/metricsService';
+import RevenueGraph from '@/components/RevenueGraph';
 
 export default function MetricsDashboard() {
   const [metrics, setMetrics] = useState<MetricsData | null>(null);
@@ -116,6 +117,11 @@ export default function MetricsDashboard() {
               {metrics.customerRetentionRate.toFixed(1)}%
             </p>
           </div>
+        </div>
+
+        {/* Revenue Graph */}
+        <div className="mb-6">
+          <RevenueGraph />
         </div>
 
         {/* Growth Trend Chart */}

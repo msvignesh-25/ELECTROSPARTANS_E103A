@@ -1,8 +1,41 @@
-import React from 'react';
-import Link from 'next/link';
-import Logo from './Logo';
+"use client";
+
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
+import Logo from "./Logo";
+
+interface User {
+  id: string;
+  email: string;
+  role: string;
+  name: string;
+}
 
 export default function Navbar() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setUser(null);
+    router.push("/");
+  };
+
+  const getLoginLink = () => {
+    if (pathname?.includes("investor")) return "/login?role=investor";
+    if (pathname?.includes("customer")) return "/login?role=customer";
+    return "/login?role=vendor";
+  };
+
   return (
     <nav className="bg-white shadow-sm dark:bg-gray-800">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -20,18 +53,66 @@ export default function Navbar() {
               >
                 Home
               </Link>
-              <Link
-                href="/investor"
-                className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
-              >
-                Investor
-              </Link>
-              <Link
-                href="/customer"
-                className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
-              >
-                Customer
-              </Link>
+              {user?.role === "investor" ? (
+                <Link
+                  href="/investor"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                >
+                  Investor
+                </Link>
+              ) : (
+                <Link
+                  href="/login?role=investor"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                >
+                  Investor
+                </Link>
+              )}
+              {user?.role === "customer" ? (
+                <Link
+                  href="/customer"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                >
+                  Customer
+                </Link>
+              ) : (
+                <Link
+                  href="/login?role=customer"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                >
+                  Customer
+                </Link>
+              )}
+              {user?.role === "vendor" ? (
+                <Link
+                  href="/vendor"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                >
+                  Vendor
+                </Link>
+              ) : (
+                <Link
+                  href="/login?role=vendor"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                >
+                  Vendor
+                </Link>
+              )}
+              {user?.role === "admin" ? (
+                <Link
+                  href="/admin"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                >
+                  Admin
+                </Link>
+              ) : (
+                <Link
+                  href="/login?role=admin"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                >
+                  Admin
+                </Link>
+              )}
               <Link
                 href="/queries"
                 className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
@@ -52,30 +133,30 @@ export default function Navbar() {
               </Link>
             </div>
           </div>
-          <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            <button
-              type="button"
-              className="rounded-full bg-white p-1 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:hover:text-white"
-            >
-              <span className="sr-only">View notifications</span>
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                aria-hidden="true"
+          <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
+            {user ? (
+              <>
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {user.name || user.email}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Link
+                href={getLoginLink()}
+                className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
-                />
-              </svg>
-            </button>
+                Login
+              </Link>
+            )}
           </div>
         </div>
       </div>
     </nav>
   );
-} 
+}

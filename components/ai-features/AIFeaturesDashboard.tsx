@@ -13,6 +13,7 @@ import AIOutreach from './AIOutreach';
 import MysteryDrink from './MysteryDrink';
 import SmellToImage from './SmellToImage';
 import BeveragePersonalizationAssistant from './BeveragePersonalizationAssistant';
+import CustomerMoodRecommendation from './CustomerMoodRecommendation';
 
 interface ShopData {
   shopName: string;
@@ -43,6 +44,7 @@ export default function AIFeaturesDashboard({ shopData }: AIFeaturesDashboardPro
     { id: 'instagram', name: 'Instagram Auto-Poster', icon: '📱', component: InstagramAutoPoster },
     { id: 'outreach', name: 'AI Outreach', icon: '📧', component: AIOutreach },
     { id: 'beverage-personalization', name: 'Beverage Personalization', icon: '🎯', component: BeveragePersonalizationAssistant },
+    { id: 'customer-mood-recommendation', name: 'Customer Mood Recommendation', icon: '💭', component: CustomerMoodRecommendation },
   ];
 
   const ActiveComponent = activeFeature 

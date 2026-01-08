@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import MetricsDashboard from '@/components/MetricsDashboard';
+import MonthlyRevenueGraph from '@/components/MonthlyRevenueGraph';
 
 interface BusinessStats {
   businessName: string;
@@ -20,59 +22,86 @@ interface BusinessStats {
 }
 
 export default function InvestorPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
   const [selectedBusiness, setSelectedBusiness] = useState<string>('');
   const [query, setQuery] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [businesses, setBusinesses] = useState<BusinessStats[]>([]);
+  const [showAddBusiness, setShowAddBusiness] = useState(false);
+  const [newBusiness, setNewBusiness] = useState({
+    businessName: '',
+    businessType: '',
+    monthlyRevenue: '',
+    growthRate: '',
+  });
 
-  // Sample business data (in real app, this would come from API/database)
-  const businesses: BusinessStats[] = [
-    {
-      businessName: 'Coffee Corner',
-      businessType: 'Coffee Shop',
-      monthlyRevenue: 45000,
-      growthRate: 15.5,
-      customerCount: 1250,
-      averageOrderValue: 8.50,
-      monthlyExpenses: 28000,
-      profitMargin: 37.8,
-      employeeCount: 8,
-      marketShare: '12%',
-      customerRetentionRate: 78,
-      monthlyVisitors: 3500,
-      conversionRate: 35.7,
-    },
-    {
-      businessName: 'Tech Repair Pro',
-      businessType: 'Electronics Repair',
-      monthlyRevenue: 32000,
-      growthRate: 22.3,
-      customerCount: 890,
-      averageOrderValue: 95.00,
-      monthlyExpenses: 18000,
-      profitMargin: 43.8,
-      employeeCount: 5,
-      marketShare: '8%',
-      customerRetentionRate: 82,
-      monthlyVisitors: 1200,
-      conversionRate: 74.2,
-    },
-    {
-      businessName: 'Fresh Bakery',
-      businessType: 'Bakery',
-      monthlyRevenue: 28000,
-      growthRate: 18.7,
-      customerCount: 2100,
-      averageOrderValue: 12.30,
-      monthlyExpenses: 16500,
-      profitMargin: 41.1,
-      employeeCount: 6,
-      marketShare: '15%',
-      customerRetentionRate: 85,
-      monthlyVisitors: 4200,
-      conversionRate: 50.0,
-    },
-  ];
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      router.push('/login?role=investor');
+      return;
+    }
+
+    const userData = JSON.parse(userStr);
+    if (userData.role !== 'investor') {
+      router.push('/login?role=investor');
+      return;
+    }
+
+    setUser(userData);
+    loadBusinesses(userData.id);
+  }, [router]);
+
+  const loadBusinesses = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/investor/businesses?userId=${userId}`);
+      const data = await res.json();
+      setBusinesses(data.businesses || []);
+    } catch (error) {
+      console.error('Error loading businesses:', error);
+    }
+  };
+
+  const handleAddBusiness = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const businessData: BusinessStats = {
+      businessName: newBusiness.businessName,
+      businessType: newBusiness.businessType,
+      monthlyRevenue: parseFloat(newBusiness.monthlyRevenue) || 0,
+      growthRate: parseFloat(newBusiness.growthRate) || 0,
+      customerCount: 0,
+      averageOrderValue: 0,
+      monthlyExpenses: 0,
+      profitMargin: 0,
+      employeeCount: 0,
+      marketShare: '0%',
+      customerRetentionRate: 0,
+      monthlyVisitors: 0,
+      conversionRate: 0,
+    };
+
+    try {
+      const res = await fetch('/api/investor/businesses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, business: businessData }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setBusinesses(data.businesses);
+        setShowAddBusiness(false);
+        setNewBusiness({ businessName: '', businessType: '', monthlyRevenue: '', growthRate: '' });
+      }
+    } catch (error) {
+      console.error('Error adding business:', error);
+    }
+  };
+
 
   const selectedBusinessData = businesses.find((b) => b.businessName === selectedBusiness);
 
@@ -89,9 +118,9 @@ export default function InvestorPage() {
 
       if (lowerQuery.includes('revenue') || lowerQuery.includes('income') || lowerQuery.includes('sales')) {
         response = `Based on the data for ${business.businessName}:\n\n`;
-        response += `• Monthly Revenue: $${business.monthlyRevenue.toLocaleString()}\n`;
+        response += `• Monthly Revenue: ₹${business.monthlyRevenue.toLocaleString('en-IN')}\n`;
         response += `• Growth Rate: ${business.growthRate}% (excellent growth trajectory)\n`;
-        response += `• Average Order Value: $${business.averageOrderValue}\n`;
+        response += `• Average Order Value: ₹${business.averageOrderValue.toLocaleString('en-IN')}\n`;
         response += `• Profit Margin: ${business.profitMargin}% (strong profitability)\n\n`;
         response += `The business shows healthy revenue growth with a ${business.growthRate}% increase, indicating strong market demand and effective business strategies.`;
       } else if (lowerQuery.includes('customer') || lowerQuery.includes('client')) {
@@ -103,9 +132,9 @@ export default function InvestorPage() {
         response += `The business maintains a strong customer base with ${business.customerRetentionRate}% retention, showing excellent customer satisfaction and loyalty.`;
       } else if (lowerQuery.includes('profit') || lowerQuery.includes('margin') || lowerQuery.includes('expense')) {
         response = `Financial Performance for ${business.businessName}:\n\n`;
-        response += `• Monthly Revenue: $${business.monthlyRevenue.toLocaleString()}\n`;
-        response += `• Monthly Expenses: $${business.monthlyExpenses.toLocaleString()}\n`;
-        response += `• Net Profit: $${(business.monthlyRevenue - business.monthlyExpenses).toLocaleString()}\n`;
+        response += `• Monthly Revenue: ₹${business.monthlyRevenue.toLocaleString('en-IN')}\n`;
+        response += `• Monthly Expenses: ₹${business.monthlyExpenses.toLocaleString('en-IN')}\n`;
+        response += `• Net Profit: ₹${(business.monthlyRevenue - business.monthlyExpenses).toLocaleString('en-IN')}\n`;
         response += `• Profit Margin: ${business.profitMargin}%\n\n`;
         response += `The business operates with a ${business.profitMargin}% profit margin, indicating efficient cost management and strong financial health.`;
       } else if (lowerQuery.includes('growth') || lowerQuery.includes('trend') || lowerQuery.includes('future')) {
@@ -125,7 +154,7 @@ export default function InvestorPage() {
       } else {
         response = `Analysis for ${business.businessName}:\n\n`;
         response += `Based on the available data:\n`;
-        response += `• Monthly Revenue: $${business.monthlyRevenue.toLocaleString()}\n`;
+        response += `• Monthly Revenue: ₹${business.monthlyRevenue.toLocaleString('en-IN')}\n`;
         response += `• Growth Rate: ${business.growthRate}%\n`;
         response += `• Profit Margin: ${business.profitMargin}%\n`;
         response += `• Customers: ${business.customerCount.toLocaleString()}\n`;
@@ -138,17 +167,103 @@ export default function InvestorPage() {
     }, 1000);
   };
 
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            Investor Dashboard
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            AI-powered business statistics and insights for investors
-          </p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+              Investor Dashboard
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Welcome, {user.name}! AI-powered business statistics and insights
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAddBusiness(!showAddBusiness)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors cursor-pointer z-10 relative"
+          >
+            {showAddBusiness ? 'Cancel' : '+ Add Business'}
+          </button>
         </div>
+
+        {showAddBusiness && (
+          <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Add New Business
+            </h2>
+            <form onSubmit={handleAddBusiness} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Business Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newBusiness.businessName}
+                    onChange={(e) => setNewBusiness({ ...newBusiness, businessName: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="Enter business name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Business Type
+                  </label>
+                  <select
+                    required
+                    value={newBusiness.businessType}
+                    onChange={(e) => setNewBusiness({ ...newBusiness, businessType: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">Select type</option>
+                    <option value="bakery">Bakery</option>
+                    <option value="repair shop (mobiles, laptops)">Repair Shop</option>
+                    <option value="cool drinks">Cool Drinks</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Monthly Revenue (₹)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={newBusiness.monthlyRevenue}
+                    onChange={(e) => setNewBusiness({ ...newBusiness, monthlyRevenue: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Growth Rate (%)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={newBusiness.growthRate}
+                    onChange={(e) => setNewBusiness({ ...newBusiness, growthRate: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+              >
+                Add Business
+              </button>
+            </form>
+          </div>
+        )}
 
         {/* Shared Metrics Dashboard (Owner & Investor View) */}
         <div className="mb-8">
@@ -191,7 +306,7 @@ export default function InvestorPage() {
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                     <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Monthly Revenue</p>
                     <p className="text-2xl font-bold text-blue-900 dark:text-blue-300">
-                      ${selectedBusinessData.monthlyRevenue.toLocaleString()}
+                      ₹{selectedBusinessData.monthlyRevenue.toLocaleString('en-IN')}
                     </p>
                   </div>
 
@@ -219,7 +334,7 @@ export default function InvestorPage() {
                   <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
                     <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">Avg Order Value</p>
                     <p className="text-2xl font-bold text-indigo-900 dark:text-indigo-300">
-                      ${selectedBusinessData.averageOrderValue}
+                      ₹{selectedBusinessData.averageOrderValue.toLocaleString('en-IN')}
                     </p>
                   </div>
 
@@ -233,7 +348,7 @@ export default function InvestorPage() {
                   <div className="bg-teal-50 dark:bg-teal-900/20 p-4 rounded-lg">
                     <p className="text-sm text-teal-600 dark:text-teal-400 font-medium">Monthly Expenses</p>
                     <p className="text-2xl font-bold text-teal-900 dark:text-teal-300">
-                      ${selectedBusinessData.monthlyExpenses.toLocaleString()}
+                      ₹{selectedBusinessData.monthlyExpenses.toLocaleString('en-IN')}
                     </p>
                   </div>
 
@@ -270,7 +385,7 @@ export default function InvestorPage() {
                     <div>
                       <span className="text-gray-600 dark:text-gray-400">Net Profit: </span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        ${(selectedBusinessData.monthlyRevenue - selectedBusinessData.monthlyExpenses).toLocaleString()}
+                        ₹{(selectedBusinessData.monthlyRevenue - selectedBusinessData.monthlyExpenses).toLocaleString('en-IN')}
                       </span>
                     </div>
                     <div>
@@ -283,6 +398,11 @@ export default function InvestorPage() {
                 </div>
               </div>
             )}
+
+            {/* Monthly Revenue Graph */}
+            <div className="mt-8">
+              <MonthlyRevenueGraph months={12} minimumThreshold={50000} />
+            </div>
           </div>
 
           {/* AI Query Section */}
