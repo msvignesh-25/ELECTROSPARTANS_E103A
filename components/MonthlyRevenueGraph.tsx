@@ -27,21 +27,89 @@ export default function MonthlyRevenueGraph({
 
   useEffect(() => {
     loadRevenueData();
+    // Listen for changes to coffee metrics in localStorage
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'coffeeBusinessMetrics') {
+        loadRevenueData();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically for changes (in case same window/tab)
+    const interval = setInterval(() => {
+      loadRevenueData();
+    }, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, [vendorId, months]);
 
-  const loadRevenueData = async () => {
+  const loadRevenueData = () => {
     try {
       setLoading(true);
-      const url = `/api/revenue/monthly?months=${months}${vendorId ? `&vendorId=${vendorId}` : ''}`;
-      const res = await fetch(url);
-      const data = await res.json();
       
-      if (data.success) {
-        setRevenueData(data.data || []);
-        setTotalRevenue(data.totalRevenue || 0);
+      // CRITICAL: Read vendor-entered revenue data from localStorage
+      // This is the SINGLE SOURCE OF TRUTH - no API calculations, no order-based calculations
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('coffeeBusinessMetrics');
+        if (saved) {
+          try {
+            const metrics = JSON.parse(saved);
+            
+            // Convert vendor-entered metrics to revenue data format
+            const revenueMap: Record<string, number> = {};
+            let total = 0;
+            
+            metrics.forEach((metric: any) => {
+              const monthKey = `${metric.year}-${String(new Date(`${metric.month} 1, ${metric.year}`).getMonth() + 1).padStart(2, '0')}`;
+              // Use EXACT vendor-entered monthlyRevenue value - no calculations
+              const revenue = typeof metric.monthlyRevenue === 'number' 
+                ? metric.monthlyRevenue 
+                : parseFloat(metric.monthlyRevenue.toString()) || 0;
+              
+              revenueMap[monthKey] = revenue;
+              total += revenue;
+            });
+            
+            // Convert to array format and sort by date
+            const data: RevenueData[] = Object.entries(revenueMap)
+              .map(([monthKey, revenue]) => {
+                const [year, monthNum] = monthKey.split('-');
+                const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                                  'July', 'August', 'September', 'October', 'November', 'December'];
+                
+                return {
+                  month: monthNames[parseInt(monthNum) - 1],
+                  monthKey,
+                  revenue,
+                  year: parseInt(year),
+                  monthNumber: parseInt(monthNum),
+                };
+              })
+              .sort((a, b) => {
+                if (a.year !== b.year) return a.year - b.year;
+                return a.monthNumber - b.monthNumber;
+              });
+            
+            setRevenueData(data);
+            setTotalRevenue(total);
+          } catch (error) {
+            console.error('Error parsing coffee metrics:', error);
+            setRevenueData([]);
+            setTotalRevenue(0);
+          }
+        } else {
+          setRevenueData([]);
+          setTotalRevenue(0);
+        }
       }
     } catch (error) {
       console.error('Error loading revenue data:', error);
+      setRevenueData([]);
+      setTotalRevenue(0);
     } finally {
       setLoading(false);
     }
@@ -96,6 +164,9 @@ export default function MonthlyRevenueGraph({
           <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Total Revenue</p>
           <p className="text-xl font-bold text-blue-900 dark:text-blue-300">
             ₹{totalRevenue.toLocaleString('en-IN')}
+          </p>
+          <p className="text-xs text-blue-700 dark:text-blue-400 mt-1 italic">
+            Revenue Source: Vendor Input
           </p>
         </div>
         <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">

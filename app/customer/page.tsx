@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { loadOrders, saveOrder } from "@/services/metricsService";
 
 interface Product {
   id: string;
@@ -55,6 +56,7 @@ export default function CustomerPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [showCart, setShowCart] = useState(false);
   
   // Personal Preference Quiz states
   const [quizAnswers, setQuizAnswers] = useState({
@@ -519,6 +521,23 @@ export default function CustomerPage() {
       }
 
       if (data.success) {
+        // Save order to localStorage for AI assistant
+        cart.forEach((item) => {
+          const orderData = {
+            id: `${data.order.orderId}-${item.productId}`,
+            orderId: data.order.orderId,
+            productId: item.productId,
+            productName: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            date: new Date(),
+            customerId: user.id,
+            customerName: user.name,
+            reviewSubmitted: false,
+          };
+          saveOrder(orderData);
+        });
+
         // Clear cart
         setCart([]);
         await saveCart(user.id, []);
@@ -704,150 +723,192 @@ export default function CustomerPage() {
       ? products
       : products.filter((p) => p.category === selectedCategory);
 
+  // Intent detection based on keywords
+  const detectIntent = (question: string): string => {
+    const lowerQuery = question.toLowerCase();
+    
+    if (
+      lowerQuery.includes("cheapest") ||
+      lowerQuery.includes("lowest price") ||
+      lowerQuery.includes("least cost")
+    ) {
+      return "CHEAPEST_PRODUCT";
+    }
+    
+    if (
+      lowerQuery.includes("best sold") ||
+      lowerQuery.includes("most sold") ||
+      lowerQuery.includes("popular")
+    ) {
+      return "BEST_SELLING_PRODUCT";
+    }
+    
+    if (
+      lowerQuery.includes("price of") ||
+      lowerQuery.includes("cost of")
+    ) {
+      return "PRODUCT_PRICE_QUERY";
+    }
+    
+    return "UNKNOWN";
+  };
+
+  // Algorithm: Find cheapest product
+  const findCheapestProduct = (): string => {
+    if (!products || products.length === 0) {
+      return "No product data available to determine the cheapest item.";
+    }
+
+    // Find product with minimum price
+    let cheapestProduct = products[0];
+    for (let i = 1; i < products.length; i++) {
+      if (products[i].price < cheapestProduct.price) {
+        cheapestProduct = products[i];
+      }
+    }
+
+    const response = `Cheapest Product:\n\n` +
+      `• Product Name: ${cheapestProduct.name}\n` +
+      `• Price: ₹${cheapestProduct.price.toLocaleString("en-IN")}\n\n` +
+      `This is the cheapest item based on current prices.`;
+
+    return response;
+  };
+
+  // Algorithm: Find best-selling product
+  const findBestSellingProduct = (): string => {
+    // Load orders from localStorage
+    const orders = loadOrders();
+    
+    if (!orders || orders.length === 0) {
+      return "Sales data is not available to determine the best-selling item.";
+    }
+
+    // Count sales per product (by productId or productName)
+    const productSalesCount: { [key: string]: { count: number; name: string } } = {};
+    
+    orders.forEach((order: any) => {
+      // Handle order structure from localStorage (saved by saveOrder)
+      const productId = order.productId;
+      const productName = order.productName || "";
+      const quantity = order.quantity || 1;
+      
+      if (productId || productName) {
+        const key = productId || productName;
+        if (!productSalesCount[key]) {
+          productSalesCount[key] = { count: 0, name: productName || "" };
+        }
+        productSalesCount[key].count += quantity;
+        
+        // Update name if we have a better one
+        if (productName && !productSalesCount[key].name) {
+          productSalesCount[key].name = productName;
+        }
+      }
+    });
+
+    // Find product with highest sales count
+    let bestSellingKey = "";
+    let maxSales = 0;
+    let bestProductName = "";
+
+    for (const key in productSalesCount) {
+      if (productSalesCount[key].count > maxSales) {
+        maxSales = productSalesCount[key].count;
+        bestSellingKey = key;
+        bestProductName = productSalesCount[key].name;
+      }
+    }
+
+    if (!bestSellingKey || maxSales === 0) {
+      return "Sales data is not available to determine the best-selling item.";
+    }
+
+    // Try to get product name from products list
+    let productName = bestProductName;
+    const product = products.find((p) => p.id === bestSellingKey || p.name === bestSellingKey);
+    if (product) {
+      productName = product.name;
+    } else if (!productName) {
+      productName = bestSellingKey;
+    }
+
+    const response = `Best-Selling Product:\n\n` +
+      `• Product Name: ${productName}\n` +
+      `• Number of Orders: ${maxSales}\n\n` +
+      `This item is the best sold based on order data.`;
+
+    return response;
+  };
+
+  // Handle product price query
+  const handleProductPriceQuery = (question: string): string => {
+    const lowerQuery = question.toLowerCase();
+    
+    // Try to extract product name from question
+    const productNameMatch = lowerQuery.match(/(?:price of|cost of)\s+(.+)/);
+    if (productNameMatch) {
+      const searchTerm = productNameMatch[1].trim();
+      const foundProduct = products.find((p) =>
+        p.name.toLowerCase().includes(searchTerm)
+      );
+      
+      if (foundProduct) {
+        return `Product Price:\n\n` +
+          `• Product Name: ${foundProduct.name}\n` +
+          `• Price: ₹${foundProduct.price.toLocaleString("en-IN")}\n`;
+      } else {
+        return "I don't have enough data to answer this question accurately. Product not found.";
+      }
+    }
+    
+    return "I don't have enough data to answer this question accurately. Please specify the product name.";
+  };
+
   const handleAIQuery = () => {
-    if (!query.trim() || products.length === 0) return;
+    if (!query.trim()) {
+      setAiResponse("Please enter a question.");
+      return;
+    }
+
+    if (products.length === 0) {
+      setAiResponse("No product data available to answer questions.");
+      return;
+    }
 
     setIsLoading(true);
+    
+    // Simulate processing delay
     setTimeout(() => {
-      const lowerQuery = query.toLowerCase();
+      const intent = detectIntent(query);
       let response = "";
 
-      if (
-        lowerQuery.includes("price") ||
-        lowerQuery.includes("cost") ||
-        lowerQuery.includes("expensive")
-      ) {
-        const avgPrice =
-          products.reduce((sum, p) => sum + p.price, 0) / products.length;
-        response = `Pricing Information:\n\n`;
-        response += `• Average Product Price: ₹${avgPrice.toLocaleString(
-          "en-IN"
-        )}\n`;
-        response += `• Price Range: ₹${Math.min(
-          ...products.map((p) => p.price)
-        ).toLocaleString("en-IN")} - ₹${Math.max(
-          ...products.map((p) => p.price)
-        ).toLocaleString("en-IN")}\n\n`;
-        response += `Our products are competitively priced with excellent value. All prices include quality assurance and customer support.`;
-      } else if (
-        lowerQuery.includes("quality") ||
-        lowerQuery.includes("good") ||
-        lowerQuery.includes("best")
-      ) {
-        const sortedByRating = [...products].sort((a, b) => {
-          if (b.rating !== a.rating) return b.rating - a.rating;
-          return b.reviews - a.reviews;
-        });
-
-        const bestProduct = sortedByRating[0];
-        const avgRating =
-          products.reduce((sum, p) => sum + p.rating, 0) / products.length;
-        const totalReviews = products.reduce(
-          (sum, p) => sum + p.reviews,
-          0
-        );
-
-        response = `Best Product Recommendation:\n\n`;
-        response += `• Best Rated: ${bestProduct.name}\n`;
-        response += `• Rating: ${bestProduct.rating}⭐ (${bestProduct.reviews} reviews)\n`;
-        response += `• Price: ₹${bestProduct.price.toLocaleString("en-IN")}\n\n`;
-        response += `This product has the highest rating (${bestProduct.rating}⭐) with ${bestProduct.reviews} customer reviews, making it our top recommendation.\n\n`;
-        response += `Overall Quality: ${avgRating.toFixed(
-          1
-        )}/5.0 ⭐ average from ${totalReviews} total customer reviews.`;
-      } else if (
-        lowerQuery.includes("available") ||
-        lowerQuery.includes("stock") ||
-        lowerQuery.includes("in stock")
-      ) {
-        const productName = lowerQuery
-          .replace("available", "")
-          .replace("stock", "")
-          .replace("in stock", "")
-          .trim();
-
-        if (productName) {
-          const foundProduct = products.find((p) =>
-            p.name.toLowerCase().includes(productName)
-          );
-          if (foundProduct) {
-            response = `Stock Information:\n\n`;
-            response += `• Product: ${foundProduct.name}\n`;
-            response += `• Stock Available: ${foundProduct.stock || 0} units\n`;
-            response += `• Status: ${
-              (foundProduct.stock || 0) > 0 ? "In Stock" : "Out of Stock"
-            }\n`;
-            response += `• Price: ₹${foundProduct.price.toLocaleString(
-              "en-IN"
-            )}\n`;
-          } else {
-            response = `Product not found. Please check the product name.`;
-          }
-        } else {
-          const inStockCount = products.filter((p) => (p.stock || 0) > 0)
-            .length;
-          response = `Availability:\n\n`;
-          response += `• ${inStockCount} out of ${products.length} products currently in stock\n\n`;
-          products.forEach((p) => {
-            if ((p.stock || 0) > 0) {
-              response += `• ${p.name}: ${p.stock} available\n`;
-            }
-          });
-        }
-      } else if (
-        lowerQuery.includes("recommend") ||
-        lowerQuery.includes("suggest") ||
-        lowerQuery.includes("popular")
-      ) {
-        const sortedByRating = [...products]
-          .filter((p) => p.reviews > 0)
-          .sort((a, b) => {
-            const scoreA = a.rating * Math.log(a.reviews + 1);
-            const scoreB = b.rating * Math.log(b.reviews + 1);
-            return scoreB - scoreA;
-          });
-
-        const topProduct = sortedByRating[0];
-        const mostReviewed = [...products].sort(
-          (a, b) => b.reviews - a.reviews
-        )[0];
-
-        response = `Recommendations:\n\n`;
-        response += `• Best Overall: ${topProduct.name}\n`;
-        response += `  Rating: ${topProduct.rating}⭐ (${topProduct.reviews} reviews)\n`;
-        response += `  Price: ₹${topProduct.price.toLocaleString("en-IN")}\n\n`;
-        response += `• Most Popular: ${mostReviewed.name}\n`;
-        response += `  ${mostReviewed.reviews} reviews, ₹${mostReviewed.price.toLocaleString(
-          "en-IN"
-        )}\n\n`;
-        response += `Based on ratings and number of reviews, ${topProduct.name} is our top recommendation.`;
-      } else if (
-        lowerQuery.includes("delivery") ||
-        lowerQuery.includes("shipping") ||
-        lowerQuery.includes("time")
-      ) {
-        response = `Delivery Information:\n\n`;
-        response += `• Standard Delivery: 3-5 business days\n`;
-        response += `• Express Delivery: 1-2 business days (available)\n`;
-        response += `• Same-Day Service: Available for local orders\n`;
-        response += `• Free Shipping: On orders over ₹5000\n\n`;
-        response += `We offer flexible delivery options to meet your needs. Contact us for specific delivery times in your area.`;
-      } else {
-        response = `I can help you with:\n\n`;
-        response += `• Product pricing and costs\n`;
-        response += `• Quality and ratings information\n`;
-        response += `• Stock availability (e.g., "how many croissants available?")\n`;
-        response += `• Product recommendations based on ratings\n`;
-        response += `• Delivery and shipping options\n\n`;
-        response += `Please ask a specific question about our products or services!`;
+      switch (intent) {
+        case "CHEAPEST_PRODUCT":
+          response = findCheapestProduct();
+          break;
+        
+        case "BEST_SELLING_PRODUCT":
+          response = findBestSellingProduct();
+          break;
+        
+        case "PRODUCT_PRICE_QUERY":
+          response = handleProductPriceQuery(query);
+          break;
+        
+        default:
+          response = "I don't have enough data to answer this question accurately.";
+          break;
       }
+
+      // Add transparency note
+      response += "\n\n---\nThis answer is generated by analyzing current product and sales data.";
 
       setAiResponse(response);
       setIsLoading(false);
-    }, 1000);
+    }, 500);
   };
 
-  const [showCart, setShowCart] = useState(false);
   const cartTotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
@@ -1377,8 +1438,70 @@ export default function CustomerPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-3 space-y-6">
+        {/* AI Customer Assistant Section */}
+        <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            AI Customer Assistant
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Ask questions about products, prices, and sales data. The assistant analyzes available product and order data to provide accurate answers.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="ai-question-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Your Question:
+              </label>
+              <input
+                id="ai-question-input"
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="e.g., What is the cheapest product? Which product is most sold?"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    handleAIQuery();
+                  }
+                }}
+              />
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={handleAIQuery}
+                disabled={!query.trim() || isLoading}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? "Processing..." : "Ask AI"}
+              </button>
+            </div>
+            <div className="md:col-span-1">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Supported Questions:
+                </p>
+                <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                  <li>• What is the cheapest product?</li>
+                  <li>• Which product is most sold?</li>
+                  <li>• What is the price of [product name]?</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {aiResponse && (
+            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">
+                Response:
+              </h3>
+              <div className="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap font-sans">
+                {aiResponse}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                 Categories
@@ -1460,65 +1583,6 @@ export default function CustomerPage() {
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 sticky top-4">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                🤖 AI Assistant
-              </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Ask questions about products, pricing, quality, or availability.
-              </p>
-
-              <div className="space-y-4">
-                <textarea
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="e.g., What are the prices? Which product is best? How many croissants available?"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none text-sm"
-                  rows={4}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter" && e.ctrlKey) {
-                      handleAIQuery();
-                    }
-                  }}
-                />
-
-                <button
-                  onClick={handleAIQuery}
-                  disabled={!query.trim() || isLoading}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                >
-                  {isLoading ? "Searching..." : "Ask AI"}
-                </button>
-
-                {aiResponse && (
-                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2 text-sm">
-                      AI Response:
-                    </h3>
-                    <pre className="text-xs text-blue-800 dark:text-blue-200 whitespace-pre-wrap font-sans">
-                      {aiResponse}
-                    </pre>
-                  </div>
-                )}
-
-                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Example Questions:
-                  </p>
-                  <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                    <li>• Which product is best?</li>
-                    <li>• How many croissants available?</li>
-                    <li>• What are the prices?</li>
-                    <li>• What about delivery?</li>
-                    <li>• Product quality?</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

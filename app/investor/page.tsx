@@ -276,28 +276,51 @@ export default function InvestorPage() {
   };
 
   // Calculate metrics for selected business
-  // NOTE: This section uses generated transaction data for non-coffee businesses
-  // For coffee businesses, use Coffee Business Metrics section which uses vendor-entered data
+  // CRITICAL: For coffee businesses, ALWAYS use vendor-entered data from selected month/year
+  // For non-coffee businesses, use generated transaction data
   const calculatedMetrics = useMemo(() => {
     if (!selectedBusinessData) {
       return null;
     }
 
-    // Check if this is a coffee business - if so, try to use vendor data instead
+    // Check if this is a coffee business - if so, ALWAYS use vendor data
     const isCoffeeBusiness = selectedBusinessData.businessType.toLowerCase().includes('coffee');
     
     if (isCoffeeBusiness && coffeeMetrics.length > 0) {
-      // For coffee businesses, use vendor-entered data if available
-      const latestMetric = [...coffeeMetrics].sort((a, b) => {
-        const dateA = new Date(`${a.month} 1, ${a.year}`);
-        const dateB = new Date(`${b.month} 1, ${b.year}`);
-        return dateB.getTime() - dateA.getTime();
-      })[0];
+      // For coffee businesses, use vendor-entered data from SELECTED month/year
+      // If no month/year selected, use latest metric as fallback
+      let metricToUse;
       
-      if (latestMetric) {
-        // Use EXACT vendor-entered values
-        const totalCustomers = latestMetric.customersAttended;
-        const ordersCompleted = latestMetric.ordersCompleted;
+      if (selectedMonth && selectedYear) {
+        // Use selected month/year - EXACT match
+        metricToUse = coffeeMetrics.find(
+          m => m.month === selectedMonth && m.year === selectedYear
+        );
+      }
+      
+      // Fallback to latest if no match found
+      if (!metricToUse) {
+        metricToUse = [...coffeeMetrics].sort((a, b) => {
+          const dateA = new Date(`${a.month} 1, ${a.year}`);
+          const dateB = new Date(`${b.month} 1, ${b.year}`);
+          return dateB.getTime() - dateA.getTime();
+        })[0];
+      }
+      
+      if (metricToUse) {
+        // Use EXACT vendor-entered values - no calculations, no modifications
+        const monthlyRevenue = typeof metricToUse.monthlyRevenue === 'number' 
+          ? metricToUse.monthlyRevenue 
+          : parseFloat(metricToUse.monthlyRevenue.toString()) || 0;
+        
+        const totalCustomers = typeof metricToUse.customersAttended === 'number'
+          ? metricToUse.customersAttended
+          : parseInt(metricToUse.customersAttended.toString()) || 0;
+        
+        const ordersCompleted = typeof metricToUse.ordersCompleted === 'number'
+          ? metricToUse.ordersCompleted
+          : parseInt(metricToUse.ordersCompleted.toString()) || 0;
+        
         let repeatCustomers = 0;
         if (ordersCompleted > totalCustomers) {
           repeatCustomers = Math.max(0, Math.floor((ordersCompleted - totalCustomers) * 0.7));
@@ -306,10 +329,10 @@ export default function InvestorPage() {
         }
         
         return {
-          ordersCompleted: latestMetric.ordersCompleted, // EXACT vendor value
-          totalCustomers: latestMetric.customersAttended, // EXACT vendor value
+          ordersCompleted: ordersCompleted, // EXACT vendor value
+          totalCustomers: totalCustomers, // EXACT vendor value
           repeatCustomers: repeatCustomers,
-          monthlyRevenue: latestMetric.monthlyRevenue, // EXACT vendor value - no calculations
+          monthlyRevenue: monthlyRevenue, // EXACT vendor value - no calculations, no multipliers
         };
       }
     }
@@ -328,7 +351,7 @@ export default function InvestorPage() {
       repeatCustomers,
       monthlyRevenue,
     };
-  }, [selectedBusinessData, coffeeMetrics]);
+  }, [selectedBusinessData, coffeeMetrics, selectedMonth, selectedYear]);
 
   const handleAIQuery = () => {
     if (!query.trim() || !selectedBusiness) return;
